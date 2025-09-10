@@ -1,0 +1,211 @@
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DP Numbers Management System</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Login Form -->
+        <div id="loginForm" class="auth-container">
+            <div class="header">
+                <h1>DP Numbers System</h1>
+                <p>Secure access to your number management</p>
+            </div>
+            
+            <div id="loginAlert" class="hidden"></div>
+            
+            <form id="loginFormElement">
+                <div class="form-group">
+                    <label for="loginUsername">Username</label>
+                    <input type="text" id="loginUsername" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" required>
+                </div>
+                
+                <button type="submit" class="btn">Login</button>
+            </form>
+            
+            <p style="text-align: center; margin-top: 1rem;">
+                Don't have an account? 
+                <a href="#" class="link" onclick="showRegister()">Register here</a>
+            </p>
+        </div>
+
+        <!-- Register Form -->
+        <div id="registerForm" class="auth-container hidden">
+            <div class="header">
+                <h1>Create Account</h1>
+                <p>Join the DP Numbers management system</p>
+            </div>
+            
+            <div id="registerAlert" class="hidden"></div>
+            
+            <form id="registerFormElement">
+                <div class="form-group">
+                    <label for="registerUsername">Username</label>
+                    <input type="text" id="registerUsername" required minlength="3">
+                </div>
+                
+                <div class="form-group">
+                    <label for="registerEmail">Email</label>
+                    <input type="email" id="registerEmail" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="registerPassword">Password</label>
+                    <input type="password" id="registerPassword" required minlength="6">
+                </div>
+                
+                <div class="form-group">
+                    <label for="registerConfirmPassword">Confirm Password</label>
+                    <input type="password" id="registerConfirmPassword" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="registerRole">Role</label>
+                    <select id="registerRole" required>
+                        <option value="">Select Role</option>
+                        <option value="user">User</option>
+                        <option value="manager">Manager</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn">Create Account</button>
+            </form>
+            
+            <p style="text-align: center; margin-top: 1rem;">
+                Already have an account? 
+                <a href="#" class="link" onclick="showLogin()">Login here</a>
+            </p>
+        </div>
+
+        <!-- Main Dashboard -->
+        <div id="dashboard" class="hidden">
+            <div class="user-info">
+                <div>
+                    <strong>Welcome, <span id="currentUsername"></span></strong>
+                    <span id="currentUserRole" style="margin-left: 10px; padding: 5px 10px; background: rgba(255,255,255,0.3); border-radius: 15px; font-size: 0.9rem;"></span>
+                </div>
+                <button class="btn btn-danger" onclick="logout()" style="width: auto; margin: 0; padding: 8px 16px;">Logout</button>
+            </div>
+
+            <div class="tabs">
+                <div class="tab active" onclick="showTab('overview')">Overview</div>
+                <div class="tab" onclick="showTab('numbers')">DP Numbers</div>
+                <div class="tab" onclick="showTab('assignments')">Assignments</div>
+                <div class="tab" id="adminTab" onclick="showTab('admin')" style="display: none;">Admin</div>
+            </div>
+
+            <!-- Overview Tab -->
+            <div id="overviewTab" class="tab-content">
+                <div class="stats">
+                    <div class="stat-card">
+                        <h3 id="totalNumbers">9999</h3>
+                        <p>Total DP Numbers</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 id="assignedNumbers">0</h3>
+                        <p>Assigned Numbers</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 id="availableNumbers">9999</h3>
+                        <p>Available Numbers</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 id="myAssignments">0</h3>
+                        <p>My Assignments</p>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <h3 style="margin-bottom: 1rem;">Quick Actions</h3>
+                    <button class="btn" onclick="showTab('numbers')">View All Numbers</button>
+                    <button class="btn btn-secondary" onclick="generateRandomNumbers()">Generate Random Assignment</button>
+                </div>
+            </div>
+
+            <!-- Numbers Tab -->
+            <div id="numbersTab" class="tab-content hidden">
+                <div class="search-filter">
+                    <input type="text" id="searchNumbers" placeholder="Search DP numbers..." onkeyup="filterNumbers()">
+                    <select id="statusFilter" onchange="filterNumbers()">
+                        <option value="all">All Numbers</option>
+                        <option value="available">Available</option>
+                        <option value="assigned">Assigned</option>
+                    </select>
+                    <select id="rangeFilter" onchange="filterNumbers()">
+                        <option value="all">All Ranges</option>
+                        <option value="0000-1999">DP0000-DP1999</option>
+                        <option value="2000-3999">DP2000-DP3999</option>
+                        <option value="4000-5999">DP4000-DP5999</option>
+                        <option value="6000-7999">DP6000-DP7999</option>
+                        <option value="8000-9999">DP8000-DP9999</option>
+                    </select>
+                </div>
+
+                <div class="dp-numbers-grid" id="numbersGrid">
+                    <!-- Numbers will be generated here -->
+                </div>
+            </div>
+
+            <!-- Assignments Tab -->
+            <div id="assignmentsTab" class="tab-content hidden">
+                <div id="assignmentsAlert" class="hidden"></div>
+                
+                <div class="form-group">
+                    <h3>Create New Assignment</h3>
+                    <label for="assignNumber">DP Number</label>
+                    <input type="text" id="assignNumber" placeholder="e.g., DP0001" maxlength="6">
+                </div>
+                
+                <div class="form-group">
+                    <label for="assignDescription">Description</label>
+                    <textarea id="assignDescription" rows="3" placeholder="Enter assignment description..."></textarea>
+                </div>
+                
+                <button class="btn" onclick="createAssignment()">Create Assignment</button>
+                
+                <h3 style="margin: 2rem 0 1rem 0;">My Assignments</h3>
+                <div id="myAssignmentsList">
+                    <!-- User assignments will be displayed here -->
+                </div>
+            </div>
+
+            <!-- Admin Tab -->
+            <div id="adminTab" class="tab-content hidden">
+                <div id="adminAlert" class="hidden"></div>
+                
+                <h3>User Management</h3>
+                <div id="usersList">
+                    <!-- Users list will be displayed here -->
+                </div>
+                
+                <h3 style="margin-top: 2rem;">All Assignments</h3>
+                <div id="allAssignmentsList">
+                    <!-- All assignments will be displayed here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Number Details Modal -->
+    <div id="numberModal" class="modal hidden">
+        <div class="modal-content">
+            <h3 id="modalNumberTitle"></h3>
+            <div id="modalNumberContent">
+                <!-- Content will be populated -->
+            </div>
+            <button class="btn" onclick="closeModal()">Close</button>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
