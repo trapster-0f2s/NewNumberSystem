@@ -1,211 +1,1424 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DP Numbers Management System</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <title>Number Management System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            overflow: hidden;
+            width: 100%;
+            max-width: 450px;
+            min-height: 600px;
+            position: relative;
+        }
+
+        .page {
+            display: none;
+            padding: 40px;
+            min-height: 600px;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            margin-bottom: 15px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #333;
+            border: 2px solid #e0e0e0;
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: linear-gradient(135deg, #218838 0%, #1ea785 100%);
+        }
+
+        .link-button {
+            background: none;
+            border: none;
+            color: #667eea;
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .numbers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .number-item {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+            color: #333;
+            border: 2px solid #e0e0e0;
+        }
+
+        .number-item.generated {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .nav-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .logout-btn {
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: background 0.2s ease;
+        }
+
+        .logout-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .quick-actions {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .quick-actions h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .action-btn {
+            padding: 12px;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            color: #333;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+
+        .action-btn:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .progress-container {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .progress-title {
+            font-weight: 600;
+            color: #333;
+            font-size: 1rem;
+        }
+
+        .progress-percentage {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 1.1rem;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+
+        .progress-bar.warning {
+            background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%);
+        }
+
+        .progress-bar.danger {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid #e0e0e0;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .success-message {
+            background: #efe;
+            color: #393;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .download-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 2px solid #e0e0e0;
+        }
+
+        .download-section h3 {
+            margin-bottom: 15px;
+            color: #333;
+            text-align: center;
+        }
+
+        .assignment-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .assignment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .assignment-title {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .assignment-date {
+            color: #666;
+            font-size: 0.85rem;
+        }
+
+        .assignment-description {
+            color: #666;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+
+        .assignment-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                margin: 20px;
+                border-radius: 15px;
+            }
+            
+            .page {
+                padding: 30px 25px;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <!-- Login Form -->
-        <div id="loginForm" class="auth-container">
+        <!-- Landing Page (Login/Signup) -->
+        <div id="landingPage" class="page active">
             <div class="header">
-                <h1>DP Numbers System</h1>
-                <p>Secure access to your number management</p>
+                <h1>Number Management System</h1>
+                <p>Manage your numbers efficiently</p>
             </div>
-            
-            <div id="loginAlert" class="hidden"></div>
-            
-            <form id="loginFormElement">
-                <div class="form-group">
-                    <label for="loginUsername">Username</label>
-                    <input type="text" id="loginUsername" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="loginPassword">Password</label>
-                    <input type="password" id="loginPassword" required>
-                </div>
-                
-                <button type="submit" class="btn">Login</button>
-            </form>
-            
-            <p style="text-align: center; margin-top: 1rem;">
-                Don't have an account? 
-                <a href="#" class="link" onclick="showRegister()">Register here</a>
-            </p>
+
+            <!-- Login Form -->
+            <div id="loginForm">
+                <form id="loginFormElement">
+                    <div class="form-group">
+                        <label for="loginEmail">Email</label>
+                        <input type="email" id="loginEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" required>
+                    </div>
+                    <button type="submit" class="btn" id="loginBtn">Login</button>
+                </form>
+                <p style="text-align: center; color: #666;">
+                    Don't have an account? 
+                    <button class="link-button" onclick="showSignup()">Create Account</button>
+                </p>
+            </div>
+
+            <!-- Signup Form -->
+            <div id="signupForm" style="display: none;">
+                <form id="signupFormElement">
+                    <div class="form-group">
+                        <label for="signupEmail">Email</label>
+                        <input type="email" id="signupEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signupPassword">Password</label>
+                        <input type="password" id="signupPassword" required minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm Password</label>
+                        <input type="password" id="confirmPassword" required>
+                    </div>
+                    <button type="submit" class="btn" id="signupBtn">Create Account</button>
+                </form>
+                <p style="text-align: center; color: #666;">
+                    Already have an account? 
+                    <button class="link-button" onclick="showLogin()">Login Here</button>
+                </p>
+            </div>
+
+            <div id="authMessage"></div>
         </div>
 
-        <!-- Register Form -->
-        <div id="registerForm" class="auth-container hidden">
-            <div class="header">
-                <h1>Create Account</h1>
-                <p>Join the DP Numbers management system</p>
+        <!-- Dashboard Page -->
+        <div id="dashboardPage" class="page">
+            <div class="navigation">
+                <div class="nav-title">Dashboard</div>
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
             </div>
-            
-            <div id="registerAlert" class="hidden"></div>
-            
-            <form id="registerFormElement">
-                <div class="form-group">
-                    <label for="registerUsername">Username</label>
-                    <input type="text" id="registerUsername" required minlength="3">
+
+            <div class="progress-container">
+                <div class="progress-header">
+                    <span class="progress-title">Number Usage</span>
+                    <span class="progress-percentage" id="usagePercentage">0%</span>
                 </div>
-                
-                <div class="form-group">
-                    <label for="registerEmail">Email</label>
-                    <input type="email" id="registerEmail" required>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progressBar" style="width: 0%"></div>
                 </div>
-                
-                <div class="form-group">
-                    <label for="registerPassword">Password</label>
-                    <input type="password" id="registerPassword" required minlength="6">
+                <div class="progress-info">
+                    <span id="usedCount">0 used</span>
+                    <span id="totalCapacity">of 10,000 total</span>
                 </div>
-                
-                <div class="form-group">
-                    <label for="registerConfirmPassword">Confirm Password</label>
-                    <input type="password" id="registerConfirmPassword" required>
+            </div>
+
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalNumbers">0</div>
+                    <div class="stat-label">Total Numbers</div>
                 </div>
-                
-                <div class="form-group">
-                    <label for="registerRole">Role</label>
-                    <select id="registerRole" required>
-                        <option value="">Select Role</option>
-                        <option value="user">User</option>
-                        <option value="manager">Manager</option>
-                    </select>
+                <div class="stat-card">
+                    <div class="stat-number" id="todayNumbers">0</div>
+                    <div class="stat-label">Today's Numbers</div>
                 </div>
-                
-                <button type="submit" class="btn">Create Account</button>
-            </form>
-            
-            <p style="text-align: center; margin-top: 1rem;">
-                Already have an account? 
-                <a href="#" class="link" onclick="showLogin()">Login here</a>
-            </p>
+            </div>
+
+            <div class="quick-actions">
+                <h3>Quick Actions</h3>
+                <div class="action-buttons">
+                    <div class="action-btn" onclick="showNumberGenerator()">
+                        <i class="fas fa-plus"></i><br>Add Numbers
+                    </div>
+                    <div class="action-btn" onclick="showNumbersList()">
+                        <i class="fas fa-list"></i><br>View Numbers
+                    </div>
+                    <div class="action-btn" onclick="showAssignments()">
+                        <i class="fas fa-tasks"></i><br>Assignments
+                    </div>
+                    <div class="action-btn" onclick="showUserManagement()">
+                        <i class="fas fa-users"></i><br>Users
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Main Dashboard -->
-        <div id="dashboard" class="hidden">
-            <div class="user-info">
-                <div>
-                    <strong>Welcome, <span id="currentUsername"></span></strong>
-                    <span id="currentUserRole" style="margin-left: 10px; padding: 5px 10px; background: rgba(255,255,255,0.3); border-radius: 15px; font-size: 0.9rem;"></span>
-                </div>
-                <button class="btn btn-danger" onclick="logout()" style="width: auto; margin: 0; padding: 8px 16px;">Logout</button>
+        <!-- Number Generator Page -->
+        <div id="numberGeneratorPage" class="page">
+            <div class="navigation">
+                <button class="logout-btn" onclick="showDashboard()" style="color: #667eea;">
+                    <i class="fas fa-arrow-left"></i> Back
+                </button>
+                <div class="nav-title">Add Numbers</div>
+                <div></div>
             </div>
 
-            <div class="tabs">
-                <div class="tab active" onclick="showTab('overview')">Overview</div>
-                <div class="tab" onclick="showTab('numbers')">DP Numbers</div>
-                <div class="tab" onclick="showTab('assignments')">Assignments</div>
-                <div class="tab" id="adminTab" onclick="showTab('admin')" style="display: none;">Admin</div>
-            </div>
-
-            <!-- Overview Tab -->
-            <div id="overviewTab" class="tab-content">
-                <div class="stats">
-                    <div class="stat-card">
-                        <h3 id="totalNumbers">9999</h3>
-                        <p>Total DP Numbers</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3 id="assignedNumbers">0</h3>
-                        <p>Assigned Numbers</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3 id="availableNumbers">9999</h3>
-                        <p>Available Numbers</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3 id="myAssignments">0</h3>
-                        <p>My Assignments</p>
-                    </div>
-                </div>
-                
+            <form id="numberGeneratorForm">
                 <div class="form-group">
-                    <h3 style="margin-bottom: 1rem;">Quick Actions</h3>
-                    <button class="btn" onclick="showTab('numbers')">View All Numbers</button>
-                    <button class="btn btn-secondary" onclick="generateRandomNumbers()">Generate Random Assignment</button>
-                </div>
-            </div>
-
-            <!-- Numbers Tab -->
-            <div id="numbersTab" class="tab-content hidden">
-                <div class="search-filter">
-                    <input type="text" id="searchNumbers" placeholder="Search DP numbers..." onkeyup="filterNumbers()">
-                    <select id="statusFilter" onchange="filterNumbers()">
-                        <option value="all">All Numbers</option>
-                        <option value="available">Available</option>
-                        <option value="assigned">Assigned</option>
-                    </select>
-                    <select id="rangeFilter" onchange="filterNumbers()">
-                        <option value="all">All Ranges</option>
-                        <option value="0000-1999">DP0000-DP1999</option>
-                        <option value="2000-3999">DP2000-DP3999</option>
-                        <option value="4000-5999">DP4000-DP5999</option>
-                        <option value="6000-7999">DP6000-DP7999</option>
-                        <option value="8000-9999">DP8000-DP9999</option>
-                    </select>
+                    <label for="numberInput">Enter Numbers</label>
+                    <textarea 
+                        id="numberInput" 
+                        rows="4"
+                        placeholder="Enter numbers separated by commas (e.g., 1, 2, 3, 4)"
+                        required
+                    ></textarea>
                 </div>
 
-                <div class="dp-numbers-grid" id="numbersGrid">
-                    <!-- Numbers will be generated here -->
-                </div>
-            </div>
-
-            <!-- Assignments Tab -->
-            <div id="assignmentsTab" class="tab-content hidden">
-                <div id="assignmentsAlert" class="hidden"></div>
-                
                 <div class="form-group">
-                    <h3>Create New Assignment</h3>
-                    <label for="assignNumber">DP Number</label>
-                    <input type="text" id="assignNumber" placeholder="e.g., DP0001" maxlength="6">
+                    <label for="description">Description (optional)</label>
+                    <textarea id="description" rows="3" placeholder="Brief description of the assignment"></textarea>
                 </div>
-                
-                <div class="form-group">
-                    <label for="assignDescription">Description</label>
-                    <textarea id="assignDescription" rows="3" placeholder="Enter assignment description..."></textarea>
-                </div>
-                
-                <button class="btn" onclick="createAssignment()">Create Assignment</button>
-                
-                <h3 style="margin: 2rem 0 1rem 0;">My Assignments</h3>
-                <div id="myAssignmentsList">
-                    <!-- User assignments will be displayed here -->
-                </div>
+
+                <button type="submit" class="btn" id="generateBtn">Generate DP Numbers</button>
+            </form>
+
+            <div id="generatedNumbers" style="display: none;">
+                <h3 style="margin: 20px 0 10px 0; color: #333;">Generated DP Numbers:</h3>
+                <div id="numbersDisplay" class="numbers-grid"></div>
+                <button class="btn btn-secondary" onclick="copyNumbers()">
+                    <i class="fas fa-copy"></i> Copy All Numbers
+                </button>
             </div>
 
-            <!-- Admin Tab -->
-            <div id="adminTab" class="tab-content hidden">
-                <div id="adminAlert" class="hidden"></div>
-                
-                <h3>User Management</h3>
-                <div id="usersList">
-                    <!-- Users list will be displayed here -->
-                </div>
-                
-                <h3 style="margin-top: 2rem;">All Assignments</h3>
-                <div id="allAssignmentsList">
-                    <!-- All assignments will be displayed here -->
-                </div>
+            <div id="generatorMessage"></div>
+        </div>
+
+        <!-- Numbers List Page -->
+        <div id="numbersListPage" class="page">
+            <div class="navigation">
+                <button class="logout-btn" onclick="showDashboard()" style="color: #667eea;">
+                    <i class="fas fa-arrow-left"></i> Back
+                </button>
+                <div class="nav-title">All Numbers</div>
+                <div></div>
+            </div>
+
+            <div class="download-section">
+                <h3><i class="fas fa-download"></i> Download Numbers</h3>
+                <button class="btn btn-success" onclick="downloadExcel()">
+                    <i class="fas fa-file-excel"></i> Download as Excel
+                </button>
+            </div>
+
+            <div id="numbersList">
+                <p style="text-align: center; color: #666; margin-top: 50px;">
+                    Loading numbers...
+                </p>
+            </div>
+        </div>
+
+        <!-- Assignments Page -->
+        <div id="assignmentsPage" class="page">
+            <div class="navigation">
+                <button class="logout-btn" onclick="showDashboard()" style="color: #667eea;">
+                    <i class="fas fa-arrow-left"></i> Back
+                </button>
+                <div class="nav-title">Assignments</div>
+                <div></div>
+            </div>
+
+            <div id="assignmentsList">
+                <p style="text-align: center; color: #666; margin-top: 50px;">
+                    Loading assignments...
+                </p>
+            </div>
+        </div>
+
+        <!-- User Management Page -->
+        <div id="userManagementPage" class="page">
+            <div class="navigation">
+                <button class="logout-btn" onclick="showDashboard()" style="color: #667eea;">
+                    <i class="fas fa-arrow-left"></i> Back
+                </button>
+                <div class="nav-title">User Management</div>
+                <div></div>
+            </div>
+
+            <div id="usersList">
+                <p style="text-align: center; color: #666; margin-top: 50px;">
+                    User management features coming soon...
+                </p>
             </div>
         </div>
     </div>
 
-    <!-- Number Details Modal -->
-    <div id="numberModal" class="modal hidden">
-        <div class="modal-content">
-            <h3 id="modalNumberTitle"></h3>
-            <div id="modalNumberContent">
-                <!-- Content will be populated -->
-            </div>
-            <button class="btn" onclick="closeModal()">Close</button>
-        </div>
-    </div>
+    <script>
+        // API Configuration
+        const API_BASE_URL = 'http://localhost:5000/api';
+        let authToken = null;
+        let currentUser = null;
+        let allNumbers = [];
+        let assignments = [];
 
-    <script src="js/api.js"></script>
-    <script src="js/app.js"></script>
+        // Mock data for demonstration (when API is not available)
+        const useMockData = true;
+        let mockNumbers = [];
+        let mockAssignments = [];
+
+        // Utility function for showing messages
+        function showMessage(containerId, message, type = 'error') {
+            const container = document.getElementById(containerId);
+            container.className = type === 'success' ? 'success-message' : 'error-message';
+            container.textContent = message;
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+
+        // API helper function with mock data fallback
+        async function apiCall(endpoint, options = {}) {
+            if (useMockData) {
+                return mockApiCall(endpoint, options);
+            }
+
+            const url = `${API_BASE_URL}${endpoint}`;
+            const config = {
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                },
+                ...options
+            };
+
+            if (authToken) {
+                config.headers['Authorization'] = `Bearer ${authToken}`;
+            }
+
+            try {
+                const response = await fetch(url, config);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'API request failed');
+                }
+
+                return data;
+            } catch (error) {
+                console.error('API call error:', error);
+                throw error;
+            }
+        }
+
+        // Mock API for demonstration
+        function mockApiCall(endpoint, options = {}) {
+            return new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    try {
+                        if (endpoint === '/auth/login') {
+                            const { email, password } = JSON.parse(options.body);
+                            if (email && password) {
+                                authToken = 'mock-token-' + Date.now();
+                                currentUser = { id: 1, email: email };
+                                resolve({ token: authToken, user: currentUser });
+                            } else {
+                                reject(new Error('Invalid credentials'));
+                            }
+                        } else if (endpoint === '/auth/register') {
+                            const { email, password } = JSON.parse(options.body);
+                            if (email && password) {
+                                authToken = 'mock-token-' + Date.now();
+                                currentUser = { id: 1, email: email };
+                                resolve({ token: authToken, user: currentUser });
+                            } else {
+                                reject(new Error('Registration failed'));
+                            }
+                        } else if (endpoint === '/auth/me') {
+                            if (authToken && currentUser) {
+                                resolve({ user: currentUser });
+                            } else {
+                                reject(new Error('Unauthorized'));
+                            }
+                        } else if (endpoint === '/assignments' && options.method === 'POST') {
+                            const data = JSON.parse(options.body);
+                            const assignment = {
+                                id: Date.now(),
+                                title: data.title,
+                                description: data.description,
+                                numbers: data.numbers,
+                                createdAt: new Date().toISOString()
+                            };
+                            mockAssignments.push(assignment);
+                            mockNumbers.push(...data.numbers);
+                            resolve({ assignment });
+                        } else if (endpoint === '/assignments') {
+                            resolve({ assignments: mockAssignments });
+                        } else if (endpoint === '/assignments/numbers') {
+                            resolve({ numbers: mockNumbers });
+                        } else {
+                            resolve({ success: true });
+                        }
+                    } catch (error) {
+                        reject(error);
+                    }
+                }, 500);
+            });
+        }
+
+        // Check if user is already logged in
+        async function checkAuth() {
+            if (useMockData) {
+                showDashboard();
+                return;
+            }
+
+            authToken = localStorage.getItem('authToken');
+            if (authToken) {
+                try {
+                    const response = await apiCall('/auth/me');
+                    currentUser = response.user;
+                    showDashboard();
+                } catch (error) {
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('currentUser');
+                    authToken = null;
+                    showLogin();
+                }
+            } else {
+                showLogin();
+            }
+        }
+
+        // Page navigation
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.getElementById(pageId).classList.add('active');
+        }
+
+        function showLogin() {
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('signupForm').style.display = 'none';
+            showPage('landingPage');
+        }
+
+        function showSignup() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('signupForm').style.display = 'block';
+        }
+
+        async function showDashboard() {
+            showPage('dashboardPage');
+            await loadDashboardData();
+        }
+
+        function showNumberGenerator() {
+            showPage('numberGeneratorPage');
+            document.getElementById('generatedNumbers').style.display = 'none';
+            document.getElementById('generatorMessage').innerHTML = '';
+        }
+
+        async function showNumbersList() {
+            showPage('numbersListPage');
+            await displayAllNumbers();
+        }
+
+        async function showAssignments() {
+            showPage('assignmentsPage');
+            await displayAssignments();
+        }
+
+        function showUserManagement() {
+            showPage('userManagementPage');
+        }
+
+        // Authentication functions
+        document.getElementById('loginFormElement').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const loginBtn = document.getElementById('loginBtn');
+            
+            try {
+                loginBtn.disabled = true;
+                loginBtn.textContent = 'Logging in...';
+                
+                const response = await apiCall('/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ email, password })
+                });
+
+                authToken = response.token;
+                currentUser = response.user;
+                
+                if (!useMockData) {
+                    localStorage.setItem('authToken', authToken);
+                    localStorage.setItem('currentUser', JSON.stringify(response.user));
+                }
+                
+                showMessage('authMessage', 'Login successful!', 'success');
+                
+                setTimeout(() => {
+                    showDashboard();
+                }, 1000);
+            } catch (error) {
+                showMessage('authMessage', error.message, 'error');
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Login';
+            }
+        });
+
+        document.getElementById('signupFormElement').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const signupBtn = document.getElementById('signupBtn');
+            
+            if (password !== confirmPassword) {
+                showMessage('authMessage', 'Passwords do not match', 'error');
+                return;
+            }
+            
+            try {
+                signupBtn.disabled = true;
+                signupBtn.textContent = 'Creating Account...';
+                
+                const response = await apiCall('/auth/register', {
+                    method: 'POST',
+                    body: JSON.stringify({ email, password })
+                });
+
+                authToken = response.token;
+                currentUser = response.user;
+                
+                if (!useMockData) {
+                    localStorage.setItem('authToken', authToken);
+                    localStorage.setItem('currentUser', JSON.stringify(response.user));
+                }
+                
+                showMessage('authMessage', 'Account created successfully!', 'success');
+                
+                setTimeout(() => {
+                    showDashboard();
+                }, 1000);
+            } catch (error) {
+                showMessage('authMessage', error.message, 'error');
+            } finally {
+                signupBtn.disabled = false;
+                signupBtn.textContent = 'Create Account';
+            }
+        });
+
+        async function logout() {
+            try {
+                if (!useMockData) {
+                    await apiCall('/auth/logout', { method: 'POST' });
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+            
+            // Clear local storage
+            if (!useMockData) {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('currentUser');
+            }
+            
+            authToken = null;
+            currentUser = null;
+            allNumbers = [];
+            assignments = [];
+            mockNumbers = [];
+            mockAssignments = [];
+            
+            // Reset UI
+            showPage('landingPage');
+            showLogin();
+            document.querySelectorAll('form').forEach(form => form.reset());
+            document.getElementById('authMessage').innerHTML = '';
+        }
+
+        // Load dashboard data
+        async function loadDashboardData() {
+            try {
+                await Promise.all([
+                    loadAssignments(),
+                    loadNumbers()
+                ]);
+                updateStats();
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+            }
+        }
+
+        // Load assignments
+        async function loadAssignments() {
+            try {
+                const response = await apiCall('/assignments');
+                assignments = response.assignments || [];
+            } catch (error) {
+                console.error('Error loading assignments:', error);
+                assignments = [];
+            }
+        }
+
+        // Load numbers
+        async function loadNumbers() {
+            try {
+                const response = await apiCall('/assignments/numbers');
+                allNumbers = response.numbers || [];
+            } catch (error) {
+                console.error('Error loading numbers:', error);
+                allNumbers = [];
+            }
+        }
+
+        // Update dashboard stats
+        function updateStats() {
+            const totalNumbers = allNumbers.length;
+            const capacity = 10000;
+            const percentage = Math.round((totalNumbers / capacity) * 100);
+            
+            // Get today's numbers
+            const today = new Date().toISOString().split('T')[0];
+            const todayAssignments = assignments.filter(a => 
+                a.createdAt && a.createdAt.split('T')[0] === today
+            );
+            const todayNumbers = todayAssignments.reduce((sum, a) => sum + (a.numbers?.length || 0), 0);
+
+            // Update UI
+            document.getElementById('totalNumbers').textContent = totalNumbers.toLocaleString();
+            document.getElementById('todayNumbers').textContent = todayNumbers.toLocaleString();
+            document.getElementById('usagePercentage').textContent = `${percentage}%`;
+            document.getElementById('usedCount').textContent = `${totalNumbers.toLocaleString()} used`;
+            
+            // Update progress bar
+            const progressBar = document.getElementById('progressBar');
+            progressBar.style.width = `${Math.min(percentage, 100)}%`;
+            
+            // Change color based on usage
+            progressBar.className = 'progress-bar';
+            if (percentage >= 90) {
+                progressBar.classList.add('danger');
+            } else if (percentage >= 75) {
+                progressBar.classList.add('warning');
+            }
+        }
+
+        // Number generation
+        document.getElementById('numberGeneratorForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const numberInput = document.getElementById('numberInput').value;
+            const description = document.getElementById('description').value;
+            const generateBtn = document.getElementById('generateBtn');
+            
+            if (!numberInput.trim()) {
+                showMessage('generatorMessage', 'Please enter some numbers', 'error');
+                return;
+            }
+            
+            try {
+                generateBtn.disabled = true;
+                generateBtn.textContent = 'Generating...';
+                
+                // Parse input numbers and add DP prefix if not already present
+                const inputNumbers = numberInput.split(/[,\s]+/).map(num => {
+                    const trimmed = num.trim();
+                    if (!trimmed) return null;
+                    return trimmed.startsWith('DP') ? trimmed : `DP${trimmed.padStart(4, '0')}`;
+                }).filter(num => num);
+                
+                if (inputNumbers.length === 0) {
+                    showMessage('generatorMessage', 'Please enter valid numbers', 'error');
+                    return;
+                }
+                
+                // Check for duplicate numbers
+                const existingNumbers = new Set(allNumbers);
+                const duplicates = inputNumbers.filter(num => existingNumbers.has(num));
+                
+                if (duplicates.length > 0) {
+                    showMessage('generatorMessage', `Error: These numbers have already been used: ${duplicates.join(', ')}`, 'error');
+                    return;
+                }
+                
+                // Send to backend
+                const response = await apiCall('/assignments', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        title: `Assignment ${new Date().toLocaleDateString()}`,
+                        description: description || 'No description provided',
+                        numbers: inputNumbers
+                    })
+                });
+
+                const assignment = response.assignment;
+                assignments.unshift(assignment);
+                allNumbers.push(...assignment.numbers);
+                
+                // Display generated numbers
+                displayGeneratedNumbers(assignment.numbers);
+                showMessage('generatorMessage', `Generated ${assignment.numbers.length} DP numbers successfully!`, 'success');
+                
+                // Update stats immediately
+                updateStats();
+                
+                // Clear form
+                this.reset();
+            } catch (error) {
+                showMessage('generatorMessage', error.message, 'error');
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.textContent = 'Generate DP Numbers';
+            }
+        });
+
+        function displayGeneratedNumbers(numbers) {
+            const display = document.getElementById('numbersDisplay');
+            display.innerHTML = numbers.map(num => 
+                `<div class="number-item generated">${num}</div>`
+            ).join('');
+            
+            document.getElementById('generatedNumbers').style.display = 'block';
+        }
+
+        function copyNumbers() {
+            const numbers = Array.from(document.querySelectorAll('#numbersDisplay .number-item'))
+                .map(item => item.textContent)
+                .join(', ');
+            
+            navigator.clipboard.writeText(numbers).then(() => {
+                showMessage('generatorMessage', 'Numbers copied to clipboard!', 'success');
+            }).catch(() => {
+                showMessage('generatorMessage', 'Failed to copy numbers', 'error');
+            });
+        }
+
+        // Display all numbers
+        async function displayAllNumbers() {
+            const container = document.getElementById('numbersList');
+            
+            try {
+                await loadNumbers();
+                
+                if (allNumbers.length === 0) {
+                    container.innerHTML = `
+                        <p style="text-align: center; color: #666; margin-top: 50px;">
+                            No numbers generated yet. <br>
+                            <button class="link-button" onclick="showNumberGenerator()">Generate some numbers</button>
+                        </p>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = `
+                    <p style="text-align: center; color: #666; margin-bottom: 20px;">
+                        Total: ${allNumbers.length} numbers
+                    </p>
+                    <div class="numbers-grid">
+                        ${allNumbers.map(num => `<div class="number-item">${num}</div>`).join('')}
+                    </div>
+                    <button class="btn btn-secondary" onclick="copyAllNumbers()" style="margin-top: 20px;">
+                        <i class="fas fa-copy"></i> Copy All Numbers
+                    </button>
+                `;
+            } catch (error) {
+                container.innerHTML = `
+                    <p style="text-align: center; color: #c33; margin-top: 50px;">
+                        Error loading numbers: ${error.message}
+                    </p>
+                `;
+            }
+        }
+
+        function copyAllNumbers() {
+            if (allNumbers.length === 0) {
+                alert('No numbers to copy');
+                return;
+            }
+            
+            const numbers = allNumbers.join(', ');
+            navigator.clipboard.writeText(numbers).then(() => {
+                alert('All numbers copied to clipboard!');
+            }).catch(() => {
+                alert('Failed to copy numbers');
+            });
+        }
+
+        // Display assignments
+        async function displayAssignments() {
+            const container = document.getElementById('assignmentsList');
+            
+            try {
+                await loadAssignments();
+                
+                if (assignments.length === 0) {
+                    container.innerHTML = `
+                        <p style="text-align: center; color: #666; margin-top: 50px;">
+                            No assignments created yet. <br>
+                            <button class="link-button" onclick="showNumberGenerator()">Create your first assignment</button>
+                        </p>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = assignments.map(assignment => {
+                    const date = new Date(assignment.createdAt).toLocaleDateString();
+                    const time = new Date(assignment.createdAt).toLocaleTimeString();
+                    
+                    return `
+                        <div class="assignment-card">
+                            <div class="assignment-header">
+                                <div class="assignment-title">${assignment.title}</div>
+                                <div class="assignment-date">${date} ${time}</div>
+                            </div>
+                            ${assignment.description ? `<div class="assignment-description">${assignment.description}</div>` : ''}
+                            <div class="assignment-stats">
+                                <span><i class="fas fa-list"></i> ${assignment.numbers?.length || 0} numbers</span>
+                                <span><i class="fas fa-user"></i> ${currentUser?.email || 'Unknown'}</span>
+                            </div>
+                            <div class="numbers-grid" style="margin-top: 10px;">
+                                ${(assignment.numbers || []).slice(0, 8).map(num => 
+                                    `<div class="number-item">${num}</div>`
+                                ).join('')}
+                                ${(assignment.numbers?.length || 0) > 8 ? 
+                                    `<div class="number-item" style="background: #e0e0e0;">+${(assignment.numbers.length - 8)} more</div>` : 
+                                    ''
+                                }
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                container.innerHTML = `
+                    <p style="text-align: center; color: #c33; margin-top: 50px;">
+                        Error loading assignments: ${error.message}
+                    </p>
+                `;
+            }
+        }
+
+        // Excel download function - COMPLETED
+        function downloadExcel() {
+            if (allNumbers.length === 0) {
+                alert('No numbers available to download');
+                return;
+            }
+
+            try {
+                // Create workbook and worksheet
+                const wb = XLSX.utils.book_new();
+                
+                // Create a map of numbers to their assignments for easy lookup
+                const numberToAssignmentMap = {};
+                assignments.forEach(assignment => {
+                    if (assignment.numbers) {
+                        assignment.numbers.forEach(number => {
+                            numberToAssignmentMap[number] = {
+                                title: assignment.title,
+                                description: assignment.description,
+                                date: assignment.createdAt ? new Date(assignment.createdAt).toLocaleDateString() : 'Unknown'
+                            };
+                        });
+                    }
+                });
+                
+                // Sort numbers numerically (extract numeric part after 'DP' prefix)
+                const sortedNumbers = [...allNumbers].sort((a, b) => {
+                    const numA = parseInt(a.replace(/^DP0*/, '')) || 0;
+                    const numB = parseInt(b.replace(/^DP0*/, '')) || 0;
+                    return numA - numB;
+                });
+                
+                // Prepare data for Excel
+                const excelData = [
+                    ['DP Number', 'Assignment Title', 'Description', 'Date Created'], // Headers
+                    ...sortedNumbers.map(number => {
+                        const assignment = numberToAssignmentMap[number];
+                        return [
+                            number,
+                            assignment?.title || 'Unknown Assignment',
+                            assignment?.description || 'No description',
+                            assignment?.date || 'Unknown Date'
+                        ];
+                    })
+                ];
+                
+                // Create worksheet from data
+                const ws = XLSX.utils.aoa_to_sheet(excelData);
+                
+                // Set column widths
+                const colWidths = [
+                    { width: 15 }, // DP Number
+                    { width: 25 }, // Assignment Title
+                    { width: 35 }, // Description
+                    { width: 15 }  // Date Created
+                ];
+                ws['!cols'] = colWidths;
+                
+                // Style the header row
+                const headerStyle = {
+                    font: { bold: true, color: { rgb: "FFFFFF" } },
+                    fill: { fgColor: { rgb: "667EEA" } },
+                    alignment: { horizontal: "center" }
+                };
+                
+                // Apply header styling
+                ['A1', 'B1', 'C1', 'D1'].forEach(cell => {
+                    if (ws[cell]) {
+                        ws[cell].s = headerStyle;
+                    }
+                });
+                
+                // Add worksheet to workbook
+                XLSX.utils.book_append_sheet(wb, ws, "DP Numbers");
+                
+                // Create summary sheet
+                const summaryData = [
+                    ['Summary Report'],
+                    [''],
+                    ['Total Numbers:', allNumbers.length],
+                    ['Total Assignments:', assignments.length],
+                    ['Export Date:', new Date().toLocaleString()],
+                    ['User:', currentUser?.email || 'Unknown'],
+                    [''],
+                    ['Assignment Breakdown:'],
+                    ['Assignment Title', 'Number Count', 'Date Created']
+                ];
+                
+                // Add assignment breakdown
+                assignments.forEach(assignment => {
+                    summaryData.push([
+                        assignment.title,
+                        assignment.numbers?.length || 0,
+                        assignment.createdAt ? new Date(assignment.createdAt).toLocaleDateString() : 'Unknown'
+                    ]);
+                });
+                
+                const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+                
+                // Style summary sheet
+                summaryWs['!cols'] = [{ width: 20 }, { width: 15 }, { width: 15 }];
+                
+                // Style the summary title
+                if (summaryWs['A1']) {
+                    summaryWs['A1'].s = {
+                        font: { bold: true, size: 16 },
+                        alignment: { horizontal: "center" }
+                    };
+                }
+                
+                // Style the breakdown header
+                ['A8', 'B8', 'C8'].forEach(cell => {
+                    if (summaryWs[cell]) {
+                        summaryWs[cell].s = {
+                            font: { bold: true },
+                            fill: { fgColor: { rgb: "F8F9FA" } }
+                        };
+                    }
+                });
+                
+                XLSX.utils.book_append_sheet(wb, summaryWs, "Summary");
+                
+                // Generate filename with current date
+                const now = new Date();
+                const dateStr = now.getFullYear() + 
+                               String(now.getMonth() + 1).padStart(2, '0') + 
+                               String(now.getDate()).padStart(2, '0');
+                const filename = `DP_Numbers_Export_${dateStr}.xlsx`;
+                
+                // Download the file
+                XLSX.writeFile(wb, filename);
+                
+                // Show success message
+                alert(`Excel file "${filename}" has been downloaded successfully!\n\nContains:\n- ${allNumbers.length} DP numbers\n- ${assignments.length} assignments\n- Summary report`);
+                
+            } catch (error) {
+                console.error('Excel export error:', error);
+                alert('Failed to generate Excel file. Please try again.');
+            }
+        }
+
+        // Format number for display
+        function formatNumber(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check authentication status
+            checkAuth();
+            
+            // Add some demo data for mock mode
+            if (useMockData && mockNumbers.length === 0) {
+                // Add some sample data for demonstration
+                const sampleNumbers = ['DP0001', 'DP0002', 'DP0003', 'DP0004', 'DP0005'];
+                const sampleAssignment = {
+                    id: 1,
+                    title: 'Sample Assignment',
+                    description: 'This is a sample assignment for demonstration',
+                    numbers: sampleNumbers,
+                    createdAt: new Date().toISOString()
+                };
+                
+                mockAssignments.push(sampleAssignment);
+                mockNumbers.push(...sampleNumbers);
+            }
+        });
+
+        // Handle form validation
+        document.getElementById('signupPassword').addEventListener('input', function() {
+            const password = this.value;
+            const confirmPassword = document.getElementById('confirmPassword');
+            
+            if (password.length < 6) {
+                this.setCustomValidity('Password must be at least 6 characters long');
+            } else {
+                this.setCustomValidity('');
+            }
+            
+            // Check confirm password if it has a value
+            if (confirmPassword.value && confirmPassword.value !== password) {
+                confirmPassword.setCustomValidity('Passwords do not match');
+            } else {
+                confirmPassword.setCustomValidity('');
+            }
+        });
+
+        document.getElementById('confirmPassword').addEventListener('input', function() {
+            const password = document.getElementById('signupPassword').value;
+            const confirmPassword = this.value;
+            
+            if (confirmPassword !== password) {
+                this.setCustomValidity('Passwords do not match');
+            } else {
+                this.setCustomValidity('');
+            }
+        });
+
+        // Handle number input formatting
+        document.getElementById('numberInput').addEventListener('input', function() {
+            // Auto-format the input to show preview
+            const value = this.value;
+            const numbers = value.split(/[,\s]+/).filter(n => n.trim());
+            
+            if (numbers.length > 0) {
+                const lastNumber = numbers[numbers.length - 1].trim();
+                if (lastNumber && !lastNumber.startsWith('DP') && /^\d+$/.test(lastNumber)) {
+                    // Show preview of what the DP number will look like
+                    const preview = `DP${lastNumber.padStart(4, '0')}`;
+                    this.style.borderColor = '#28a745';
+                } else {
+                    this.style.borderColor = '#e0e0e0';
+                }
+            }
+        });
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Alt + 1 = Dashboard
+            if (e.altKey && e.key === '1') {
+                e.preventDefault();
+                if (currentUser) showDashboard();
+            }
+            // Alt + 2 = Add Numbers
+            else if (e.altKey && e.key === '2') {
+                e.preventDefault();
+                if (currentUser) showNumberGenerator();
+            }
+            // Alt + 3 = View Numbers
+            else if (e.altKey && e.key === '3') {
+                e.preventDefault();
+                if (currentUser) showNumbersList();
+            }
+            // Alt + 4 = Assignments
+            else if (e.altKey && e.key === '4') {
+                e.preventDefault();
+                if (currentUser) showAssignments();
+            }
+            // Escape = Go back/Dashboard
+            else if (e.key === 'Escape') {
+                e.preventDefault();
+                if (currentUser) showDashboard();
+            }
+        });
+
+        // Add tooltip for keyboard shortcuts
+        document.body.insertAdjacentHTML('beforeend', `
+            <div style="position: fixed; bottom: 10px; right: 10px; font-size: 11px; color: #666; background: rgba(255,255,255,0.8); padding: 5px; border-radius: 3px; display: none;" id="shortcutsTooltip">
+                Shortcuts: Alt+1 Dashboard | Alt+2 Add Numbers | Alt+3 View Numbers | Alt+4 Assignments | ESC Back
+            </div>
+        `);
+
+        // Show/hide shortcuts on Alt key
+        let altKeyTimeout;
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Alt') {
+                clearTimeout(altKeyTimeout);
+                document.getElementById('shortcutsTooltip').style.display = 'block';
+            }
+        });
+
+        document.addEventListener('keyup', function(e) {
+            if (e.key === 'Alt') {
+                altKeyTimeout = setTimeout(() => {
+                    document.getElementById('shortcutsTooltip').style.display = 'none';
+                }, 2000);
+            }
+        });
+    </script>
 </body>
 </html>

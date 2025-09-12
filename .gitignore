@@ -81,3 +81,16 @@ jspm_packages/
 # Backup files
 *.bak
 *.backup
+
+# Environment variables
+.env
+
+# Node modules
+node_modules/
+
+# Logs
+*.log
+
+# Operating System Files
+.DS_Store
+Thumbs.db
