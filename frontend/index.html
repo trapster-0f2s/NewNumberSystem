@@ -384,6 +384,30 @@
             color: #666;
         }
 
+        .validation-info {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            color: #1976d2;
+        }
+
+        .validation-info h4 {
+            margin-bottom: 8px;
+            color: #1565c0;
+        }
+
+        .validation-info ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .validation-info li {
+            margin-bottom: 4px;
+        }
+
         @media (max-width: 480px) {
             .container {
                 margin: 20px;
@@ -513,13 +537,25 @@
                 <div></div>
             </div>
 
+            <div class="validation-info">
+                <h4>Number Format Requirements:</h4>
+                <ul>
+                    <li>Only positive whole numbers (1, 2, 3, etc.)</li>
+                    <li>No decimals, fractions, or negative numbers</li>
+                    <li>Zero (0) is not allowed</li>
+                    <li>Separate multiple numbers with commas</li>
+                    <li>Can enter as "123" or "DP123" format</li>
+                    <li>Duplicate numbers are automatically prevented</li>
+                </ul>
+            </div>
+
             <form id="numberGeneratorForm">
                 <div class="form-group">
                     <label for="numberInput">Enter Numbers</label>
                     <textarea 
                         id="numberInput" 
                         rows="4"
-                        placeholder="Enter whole numbers separated by commas (e.g., 1, 2, 3, 4) - no decimals allowed"
+                        placeholder="Enter positive whole numbers separated by commas (e.g., 1, 2, 3, 123) - formats as DP0001, DP0002, DP0003, DP0123"
                         required
                     ></textarea>
                 </div>
@@ -998,7 +1034,7 @@
             }
         }
 
-        // Number generation - ENHANCED WITH FIXES
+        // Number generation - ENHANCED WITH STRICT VALIDATION
         document.getElementById('numberGeneratorForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -1018,7 +1054,7 @@
                 // Ensure we have the latest data before checking duplicates
                 await loadNumbers();
                 
-                // Parse input numbers and add DP prefix if not already present - ENHANCED VALIDATION
+                // Parse input numbers with STRICT validation
                 const inputNumbers = [];
                 const invalidNumbers = [];
                 
@@ -1031,28 +1067,28 @@
                         // Extract the numeric part after DP
                         const numericPart = trimmed.substring(2);
                         
-                        // Check if it's a valid integer (no decimals)
-                        if (!/^\d+$/.test(numericPart)) {
+                        // Check if it's a valid positive integer (no decimals, no negative, no zero)
+                        if (!/^\d+$/.test(numericPart) || numericPart === '0') {
                             invalidNumbers.push(trimmed);
                             return;
                         }
                         
                         const parsedNum = parseInt(numericPart, 10);
-                        if (isNaN(parsedNum) || parsedNum < 0) {
+                        if (isNaN(parsedNum) || parsedNum <= 0) {
                             invalidNumbers.push(trimmed);
                             return;
                         }
                         
                         inputNumbers.push(`DP${parsedNum.toString().padStart(4, '0')}`);
                     } else {
-                        // Check if it's a valid integer (no decimals, no negative)
-                        if (!/^\d+$/.test(trimmed)) {
+                        // Check if it's a valid positive integer (no decimals, no negative, no zero)
+                        if (!/^\d+$/.test(trimmed) || trimmed === '0') {
                             invalidNumbers.push(trimmed);
                             return;
                         }
                         
                         const numericPart = parseInt(trimmed, 10);
-                        if (isNaN(numericPart) || numericPart < 0) {
+                        if (isNaN(numericPart) || numericPart <= 0) {
                             invalidNumbers.push(trimmed);
                             return;
                         }
@@ -1063,38 +1099,48 @@
                 
                 // Check if there were any invalid numbers
                 if (invalidNumbers.length > 0) {
-                    showMessage('generatorMessage', `Error: Invalid numbers detected. Only whole positive numbers are allowed: ${invalidNumbers.join(', ')}`, 'error');
+                    showMessage('generatorMessage', `Invalid numbers detected. Only positive whole numbers (no zero, no decimals, no negatives) are allowed: ${invalidNumbers.join(', ')}`, 'error');
                     return;
                 }
                 
                 if (inputNumbers.length === 0) {
-                    showMessage('generatorMessage', 'Please enter valid whole numbers (no decimals, no negative numbers)', 'error');
+                    showMessage('generatorMessage', 'Please enter valid positive whole numbers (no zero, no decimals, no negative numbers)', 'error');
                     return;
                 }
                 
                 // Create a comprehensive set of all existing numbers (case-insensitive)
                 const existingNumbers = new Set();
                 
-                // Add all numbers from allNumbers array
-                allNumbers.forEach(num => existingNumbers.add(num.toUpperCase()));
+                // Add all numbers from allNumbers array (normalize)
+                allNumbers.forEach(num => existingNumbers.add(num.toUpperCase().trim()));
                 
-                // Add all numbers from mockNumbers if using mock data
+                // Add all numbers from mockNumbers if using mock data (normalize)
                 if (useMockData) {
-                    mockNumbers.forEach(num => existingNumbers.add(num.toUpperCase()));
+                    mockNumbers.forEach(num => existingNumbers.add(num.toUpperCase().trim()));
+                    
+                    // Also add from all mock assignments to be extra sure
+                    mockAssignments.forEach(assignment => {
+                        if (assignment.numbers && Array.isArray(assignment.numbers)) {
+                            assignment.numbers.forEach(num => existingNumbers.add(num.toUpperCase().trim()));
+                        }
+                    });
                 }
                 
-                // Add all numbers from all assignments
+                // Add all numbers from all assignments (normalize)
                 assignments.forEach(assignment => {
-                    if (assignment.numbers) {
-                        assignment.numbers.forEach(num => existingNumbers.add(num.toUpperCase()));
+                    if (assignment.numbers && Array.isArray(assignment.numbers)) {
+                        assignment.numbers.forEach(num => existingNumbers.add(num.toUpperCase().trim()));
                     }
                 });
                 
-                // Check for duplicate numbers (case-insensitive)
-                const duplicates = inputNumbers.filter(num => existingNumbers.has(num.toUpperCase()));
+                console.log('Checking against existing numbers:', Array.from(existingNumbers));
+                console.log('Input numbers to check:', inputNumbers);
+                
+                // Check for duplicate numbers (case-insensitive, normalized)
+                const duplicates = inputNumbers.filter(num => existingNumbers.has(num.toUpperCase().trim()));
                 
                 if (duplicates.length > 0) {
-                    showMessage('generatorMessage', `Error: These numbers have already been used: ${duplicates.join(', ')}`, 'error');
+                    showMessage('generatorMessage', `These numbers have already been used: ${duplicates.join(', ')}`, 'error');
                     return;
                 }
                 
@@ -1111,7 +1157,7 @@
                 }
                 
                 if (internalDuplicates.length > 0) {
-                    showMessage('generatorMessage', `Error: Duplicate numbers in your input: ${internalDuplicates.join(', ')}`, 'error');
+                    showMessage('generatorMessage', `Duplicate numbers found in your input: ${internalDuplicates.join(', ')}`, 'error');
                     return;
                 }
                 
@@ -1131,13 +1177,17 @@
                 
                 // Display generated numbers
                 displayGeneratedNumbers(assignment.numbers);
-                showMessage('generatorMessage', `Generated ${assignment.numbers.length} DP numbers successfully!`, 'success');
+                showMessage('generatorMessage', `Successfully generated ${assignment.numbers.length} DP numbers!`, 'success');
                 
                 // Update stats immediately
                 updateStats();
                 
                 // Clear form
                 this.reset();
+                // Reset input styling
+                document.getElementById('numberInput').style.borderColor = '#e0e0e0';
+                document.getElementById('numberInput').title = '';
+                
             } catch (error) {
                 showMessage('generatorMessage', error.message, 'error');
             } finally {
@@ -1271,7 +1321,7 @@
             }
         }
 
-        // Excel download function - COMPLETED
+        // Excel download function
         function downloadExcel() {
             if (allNumbers.length === 0) {
                 alert('No numbers available to download');
@@ -1412,33 +1462,6 @@
             }
         }
 
-        // Format number for display
-        function formatNumber(num) {
-            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-        }
-
-        // Initialize the application
-        document.addEventListener('DOMContentLoaded', function() {
-            // Check authentication status
-            checkAuth();
-            
-            // Add some demo data for mock mode
-            if (useMockData && mockNumbers.length === 0) {
-                // Add some sample data for demonstration
-                const sampleNumbers = ['DP0001', 'DP0002', 'DP0003', 'DP0004', 'DP0005'];
-                const sampleAssignment = {
-                    id: 1,
-                    title: 'Sample Assignment',
-                    description: 'This is a sample assignment for demonstration',
-                    numbers: [...sampleNumbers], // Use spread to avoid reference issues
-                    createdAt: new Date().toISOString()
-                };
-                
-                mockAssignments.push(sampleAssignment);
-                mockNumbers.push(...sampleNumbers);
-            }
-        });
-
         // Handle form validation
         document.getElementById('signupPassword').addEventListener('input', function() {
             const password = this.value;
@@ -1469,9 +1492,8 @@
             }
         });
 
-        // Handle number input formatting - ENHANCED WITH REAL-TIME VALIDATION
+        // Handle number input formatting with ENHANCED REAL-TIME VALIDATION
         document.getElementById('numberInput').addEventListener('input', function() {
-            // Auto-format the input to show preview and validate
             const value = this.value;
             const numbers = value.split(/[,\s]+/).filter(n => n.trim());
             
@@ -1483,16 +1505,16 @@
                     const trimmed = num.trim();
                     if (!trimmed) continue;
                     
-                    // Check if it's a valid format
+                    // Check if it's a valid format - STRICT validation for positive whole numbers only
                     if (trimmed.startsWith('DP') || trimmed.startsWith('dp')) {
                         const numericPart = trimmed.substring(2);
-                        if (/^\d+$/.test(numericPart) && parseInt(numericPart, 10) >= 0) {
+                        if (/^\d+$/.test(numericPart) && numericPart !== '0' && parseInt(numericPart, 10) > 0) {
                             hasValidNumbers = true;
                         } else {
                             hasInvalidNumbers = true;
                             break;
                         }
-                    } else if (/^\d+$/.test(trimmed) && parseInt(trimmed, 10) >= 0) {
+                    } else if (/^\d+$/.test(trimmed) && trimmed !== '0' && parseInt(trimmed, 10) > 0) {
                         hasValidNumbers = true;
                     } else {
                         hasInvalidNumbers = true;
@@ -1503,7 +1525,7 @@
                 // Set border color based on validation
                 if (hasInvalidNumbers) {
                     this.style.borderColor = '#dc3545'; // Red for invalid
-                    this.title = 'Invalid format detected. Use only whole positive numbers (no decimals, no negatives)';
+                    this.title = 'Invalid format detected. Use only positive whole numbers (no zero, no decimals, no negatives)';
                 } else if (hasValidNumbers) {
                     this.style.borderColor = '#28a745'; // Green for valid
                     this.title = 'Valid number format';
@@ -1567,6 +1589,28 @@
                 altKeyTimeout = setTimeout(() => {
                     document.getElementById('shortcutsTooltip').style.display = 'none';
                 }, 2000);
+            }
+        });
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check authentication status
+            checkAuth();
+            
+            // Add some demo data for mock mode
+            if (useMockData && mockNumbers.length === 0) {
+                // Add some sample data for demonstration
+                const sampleNumbers = ['DP0001', 'DP0002', 'DP0003', 'DP0004', 'DP0005'];
+                const sampleAssignment = {
+                    id: 1,
+                    title: 'Sample Assignment',
+                    description: 'This is a sample assignment for demonstration',
+                    numbers: [...sampleNumbers], // Use spread to avoid reference issues
+                    createdAt: new Date().toISOString()
+                };
+                
+                mockAssignments.push(sampleAssignment);
+                mockNumbers.push(...sampleNumbers);
             }
         });
     </script>
