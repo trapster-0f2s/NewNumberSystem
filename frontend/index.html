@@ -519,7 +519,7 @@
                     <textarea 
                         id="numberInput" 
                         rows="4"
-                        placeholder="Enter numbers separated by commas (e.g., 1, 2, 3, 4)"
+                        placeholder="Enter whole numbers separated by commas (e.g., 1, 2, 3, 4) - no decimals allowed"
                         required
                     ></textarea>
                 </div>
@@ -690,6 +690,47 @@
                             }
                         } else if (endpoint === '/assignments' && options.method === 'POST') {
                             const data = JSON.parse(options.body);
+                            
+                            // Create a comprehensive set of all existing numbers for duplicate checking
+                            const allExistingNumbers = new Set();
+                            
+                            // Add from mockNumbers
+                            mockNumbers.forEach(num => allExistingNumbers.add(num.toUpperCase()));
+                            
+                            // Add from all existing assignments
+                            mockAssignments.forEach(assignment => {
+                                if (assignment.numbers) {
+                                    assignment.numbers.forEach(num => allExistingNumbers.add(num.toUpperCase()));
+                                }
+                            });
+                            
+                            // Check for duplicates in the incoming numbers
+                            const duplicates = data.numbers.filter(num => 
+                                allExistingNumbers.has(num.toUpperCase())
+                            );
+                            
+                            if (duplicates.length > 0) {
+                                reject(new Error(`Numbers already exist: ${duplicates.join(', ')}`));
+                                return;
+                            }
+                            
+                            // Check for internal duplicates in the input
+                            const inputSet = new Set();
+                            const internalDuplicates = [];
+                            for (const num of data.numbers) {
+                                const upperNum = num.toUpperCase();
+                                if (inputSet.has(upperNum)) {
+                                    internalDuplicates.push(num);
+                                } else {
+                                    inputSet.add(upperNum);
+                                }
+                            }
+                            
+                            if (internalDuplicates.length > 0) {
+                                reject(new Error(`Duplicate numbers in input: ${internalDuplicates.join(', ')}`));
+                                return;
+                            }
+                            
                             const assignment = {
                                 id: Date.now(),
                                 title: data.title,
@@ -957,7 +998,7 @@
             }
         }
 
-        // Number generation
+        // Number generation - ENHANCED WITH FIXES
         document.getElementById('numberGeneratorForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -974,24 +1015,103 @@
                 generateBtn.disabled = true;
                 generateBtn.textContent = 'Generating...';
                 
-                // Parse input numbers and add DP prefix if not already present
-                const inputNumbers = numberInput.split(/[,\s]+/).map(num => {
-                    const trimmed = num.trim();
-                    if (!trimmed) return null;
-                    return trimmed.startsWith('DP') ? trimmed : `DP${trimmed.padStart(4, '0')}`;
-                }).filter(num => num);
+                // Ensure we have the latest data before checking duplicates
+                await loadNumbers();
                 
-                if (inputNumbers.length === 0) {
-                    showMessage('generatorMessage', 'Please enter valid numbers', 'error');
+                // Parse input numbers and add DP prefix if not already present - ENHANCED VALIDATION
+                const inputNumbers = [];
+                const invalidNumbers = [];
+                
+                numberInput.split(/[,\s]+/).forEach(num => {
+                    const trimmed = num.trim();
+                    if (!trimmed) return;
+                    
+                    // Handle both raw numbers and DP-prefixed numbers
+                    if (trimmed.startsWith('DP') || trimmed.startsWith('dp')) {
+                        // Extract the numeric part after DP
+                        const numericPart = trimmed.substring(2);
+                        
+                        // Check if it's a valid integer (no decimals)
+                        if (!/^\d+$/.test(numericPart)) {
+                            invalidNumbers.push(trimmed);
+                            return;
+                        }
+                        
+                        const parsedNum = parseInt(numericPart, 10);
+                        if (isNaN(parsedNum) || parsedNum < 0) {
+                            invalidNumbers.push(trimmed);
+                            return;
+                        }
+                        
+                        inputNumbers.push(`DP${parsedNum.toString().padStart(4, '0')}`);
+                    } else {
+                        // Check if it's a valid integer (no decimals, no negative)
+                        if (!/^\d+$/.test(trimmed)) {
+                            invalidNumbers.push(trimmed);
+                            return;
+                        }
+                        
+                        const numericPart = parseInt(trimmed, 10);
+                        if (isNaN(numericPart) || numericPart < 0) {
+                            invalidNumbers.push(trimmed);
+                            return;
+                        }
+                        
+                        inputNumbers.push(`DP${numericPart.toString().padStart(4, '0')}`);
+                    }
+                });
+                
+                // Check if there were any invalid numbers
+                if (invalidNumbers.length > 0) {
+                    showMessage('generatorMessage', `Error: Invalid numbers detected. Only whole positive numbers are allowed: ${invalidNumbers.join(', ')}`, 'error');
                     return;
                 }
                 
-                // Check for duplicate numbers
-                const existingNumbers = new Set(allNumbers);
-                const duplicates = inputNumbers.filter(num => existingNumbers.has(num));
+                if (inputNumbers.length === 0) {
+                    showMessage('generatorMessage', 'Please enter valid whole numbers (no decimals, no negative numbers)', 'error');
+                    return;
+                }
+                
+                // Create a comprehensive set of all existing numbers (case-insensitive)
+                const existingNumbers = new Set();
+                
+                // Add all numbers from allNumbers array
+                allNumbers.forEach(num => existingNumbers.add(num.toUpperCase()));
+                
+                // Add all numbers from mockNumbers if using mock data
+                if (useMockData) {
+                    mockNumbers.forEach(num => existingNumbers.add(num.toUpperCase()));
+                }
+                
+                // Add all numbers from all assignments
+                assignments.forEach(assignment => {
+                    if (assignment.numbers) {
+                        assignment.numbers.forEach(num => existingNumbers.add(num.toUpperCase()));
+                    }
+                });
+                
+                // Check for duplicate numbers (case-insensitive)
+                const duplicates = inputNumbers.filter(num => existingNumbers.has(num.toUpperCase()));
                 
                 if (duplicates.length > 0) {
                     showMessage('generatorMessage', `Error: These numbers have already been used: ${duplicates.join(', ')}`, 'error');
+                    return;
+                }
+                
+                // Check for duplicates within the current input
+                const inputSet = new Set();
+                const internalDuplicates = [];
+                for (const num of inputNumbers) {
+                    const upperNum = num.toUpperCase();
+                    if (inputSet.has(upperNum)) {
+                        internalDuplicates.push(num);
+                    } else {
+                        inputSet.add(upperNum);
+                    }
+                }
+                
+                if (internalDuplicates.length > 0) {
+                    showMessage('generatorMessage', `Error: Duplicate numbers in your input: ${internalDuplicates.join(', ')}`, 'error');
                     return;
                 }
                 
@@ -1310,7 +1430,7 @@
                     id: 1,
                     title: 'Sample Assignment',
                     description: 'This is a sample assignment for demonstration',
-                    numbers: sampleNumbers,
+                    numbers: [...sampleNumbers], // Use spread to avoid reference issues
                     createdAt: new Date().toISOString()
                 };
                 
@@ -1349,21 +1469,51 @@
             }
         });
 
-        // Handle number input formatting
+        // Handle number input formatting - ENHANCED WITH REAL-TIME VALIDATION
         document.getElementById('numberInput').addEventListener('input', function() {
-            // Auto-format the input to show preview
+            // Auto-format the input to show preview and validate
             const value = this.value;
             const numbers = value.split(/[,\s]+/).filter(n => n.trim());
             
+            let hasValidNumbers = false;
+            let hasInvalidNumbers = false;
+            
             if (numbers.length > 0) {
-                const lastNumber = numbers[numbers.length - 1].trim();
-                if (lastNumber && !lastNumber.startsWith('DP') && /^\d+$/.test(lastNumber)) {
-                    // Show preview of what the DP number will look like
-                    const preview = `DP${lastNumber.padStart(4, '0')}`;
-                    this.style.borderColor = '#28a745';
-                } else {
-                    this.style.borderColor = '#e0e0e0';
+                for (const num of numbers) {
+                    const trimmed = num.trim();
+                    if (!trimmed) continue;
+                    
+                    // Check if it's a valid format
+                    if (trimmed.startsWith('DP') || trimmed.startsWith('dp')) {
+                        const numericPart = trimmed.substring(2);
+                        if (/^\d+$/.test(numericPart) && parseInt(numericPart, 10) >= 0) {
+                            hasValidNumbers = true;
+                        } else {
+                            hasInvalidNumbers = true;
+                            break;
+                        }
+                    } else if (/^\d+$/.test(trimmed) && parseInt(trimmed, 10) >= 0) {
+                        hasValidNumbers = true;
+                    } else {
+                        hasInvalidNumbers = true;
+                        break;
+                    }
                 }
+                
+                // Set border color based on validation
+                if (hasInvalidNumbers) {
+                    this.style.borderColor = '#dc3545'; // Red for invalid
+                    this.title = 'Invalid format detected. Use only whole positive numbers (no decimals, no negatives)';
+                } else if (hasValidNumbers) {
+                    this.style.borderColor = '#28a745'; // Green for valid
+                    this.title = 'Valid number format';
+                } else {
+                    this.style.borderColor = '#e0e0e0'; // Default
+                    this.title = '';
+                }
+            } else {
+                this.style.borderColor = '#e0e0e0';
+                this.title = '';
             }
         });
 
