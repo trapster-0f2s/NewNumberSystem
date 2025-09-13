@@ -651,6 +651,60 @@
         let mockNumbers = [];
         let mockAssignments = [];
 
+        // CENTRALIZED NUMBER TRACKING - This is the key fix
+        let globalUsedNumbers = new Set();
+
+        // Initialize global tracking
+        function initializeGlobalTracking() {
+            globalUsedNumbers.clear();
+            
+            // Add all numbers from mockNumbers
+            mockNumbers.forEach(num => {
+                globalUsedNumbers.add(num.toUpperCase().trim());
+            });
+            
+            // Add all numbers from mockAssignments
+            mockAssignments.forEach(assignment => {
+                if (assignment.numbers && Array.isArray(assignment.numbers)) {
+                    assignment.numbers.forEach(num => {
+                        globalUsedNumbers.add(num.toUpperCase().trim());
+                    });
+                }
+            });
+            
+            // Add all numbers from allNumbers
+            allNumbers.forEach(num => {
+                globalUsedNumbers.add(num.toUpperCase().trim());
+            });
+            
+            // Add all numbers from assignments
+            assignments.forEach(assignment => {
+                if (assignment.numbers && Array.isArray(assignment.numbers)) {
+                    assignment.numbers.forEach(num => {
+                        globalUsedNumbers.add(num.toUpperCase().trim());
+                    });
+                }
+            });
+            
+            console.log('Global tracking initialized with', globalUsedNumbers.size, 'numbers:', Array.from(globalUsedNumbers));
+        }
+
+        // Add numbers to global tracking
+        function addToGlobalTracking(numbers) {
+            if (Array.isArray(numbers)) {
+                numbers.forEach(num => {
+                    globalUsedNumbers.add(num.toUpperCase().trim());
+                });
+            }
+            console.log('Added to global tracking. Total numbers:', globalUsedNumbers.size);
+        }
+
+        // Check if number is already used
+        function isNumberUsed(number) {
+            const normalizedNumber = number.toUpperCase().trim();
+            return globalUsedNumbers.has(normalizedNumber);
+        }
+
         // Utility function for showing messages
         function showMessage(containerId, message, type = 'error') {
             const container = document.getElementById(containerId);
@@ -695,7 +749,7 @@
             }
         }
 
-        // Mock API for demonstration
+        // FIXED Mock API with proper duplicate prevention
         function mockApiCall(endpoint, options = {}) {
             return new Promise((resolve, reject) => {
                 setTimeout(() => {
@@ -727,25 +781,17 @@
                         } else if (endpoint === '/assignments' && options.method === 'POST') {
                             const data = JSON.parse(options.body);
                             
-                            // Create a comprehensive set of all existing numbers for duplicate checking
-                            const allExistingNumbers = new Set();
+                            // Ensure global tracking is up to date
+                            initializeGlobalTracking();
                             
-                            // Add from mockNumbers
-                            mockNumbers.forEach(num => allExistingNumbers.add(num.toUpperCase()));
+                            console.log('Checking incoming numbers:', data.numbers);
+                            console.log('Against existing numbers:', Array.from(globalUsedNumbers));
                             
-                            // Add from all existing assignments
-                            mockAssignments.forEach(assignment => {
-                                if (assignment.numbers) {
-                                    assignment.numbers.forEach(num => allExistingNumbers.add(num.toUpperCase()));
-                                }
-                            });
-                            
-                            // Check for duplicates in the incoming numbers
-                            const duplicates = data.numbers.filter(num => 
-                                allExistingNumbers.has(num.toUpperCase())
-                            );
+                            // Check for duplicates against all existing numbers
+                            const duplicates = data.numbers.filter(num => isNumberUsed(num));
                             
                             if (duplicates.length > 0) {
+                                console.log('Found duplicates:', duplicates);
                                 reject(new Error(`Numbers already exist: ${duplicates.join(', ')}`));
                                 return;
                             }
@@ -763,28 +809,40 @@
                             }
                             
                             if (internalDuplicates.length > 0) {
+                                console.log('Found internal duplicates:', internalDuplicates);
                                 reject(new Error(`Duplicate numbers in input: ${internalDuplicates.join(', ')}`));
                                 return;
                             }
                             
+                            // Create assignment
                             const assignment = {
                                 id: Date.now(),
                                 title: data.title,
                                 description: data.description,
-                                numbers: data.numbers,
+                                numbers: [...data.numbers], // Create a copy
                                 createdAt: new Date().toISOString()
                             };
+                            
+                            // Add to storage
                             mockAssignments.push(assignment);
                             mockNumbers.push(...data.numbers);
+                            
+                            // Update global tracking
+                            addToGlobalTracking(data.numbers);
+                            
+                            console.log('Assignment created successfully with numbers:', data.numbers);
                             resolve({ assignment });
                         } else if (endpoint === '/assignments') {
                             resolve({ assignments: mockAssignments });
                         } else if (endpoint === '/assignments/numbers') {
-                            resolve({ numbers: mockNumbers });
+                            // Return all unique numbers
+                            const allUniqueNumbers = Array.from(globalUsedNumbers);
+                            resolve({ numbers: allUniqueNumbers });
                         } else {
                             resolve({ success: true });
                         }
                     } catch (error) {
+                        console.error('Mock API error:', error);
                         reject(error);
                     }
                 }, 500);
@@ -960,6 +1018,9 @@
             mockNumbers = [];
             mockAssignments = [];
             
+            // Clear global tracking
+            globalUsedNumbers.clear();
+            
             // Reset UI
             showPage('landingPage');
             showLogin();
@@ -974,6 +1035,8 @@
                     loadAssignments(),
                     loadNumbers()
                 ]);
+                // Update global tracking after loading data
+                initializeGlobalTracking();
                 updateStats();
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
@@ -1004,7 +1067,7 @@
 
         // Update dashboard stats
         function updateStats() {
-            const totalNumbers = allNumbers.length;
+            const totalNumbers = globalUsedNumbers.size || allNumbers.length;
             const capacity = 10000;
             const percentage = Math.round((totalNumbers / capacity) * 100);
             
@@ -1034,7 +1097,7 @@
             }
         }
 
-        // Number generation - ENHANCED WITH STRICT VALIDATION
+        // FIXED Number generation with proper duplicate prevention
         document.getElementById('numberGeneratorForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -1051,8 +1114,10 @@
                 generateBtn.disabled = true;
                 generateBtn.textContent = 'Generating...';
                 
-                // Ensure we have the latest data before checking duplicates
+                // Ensure we have the latest data and global tracking is up to date
                 await loadNumbers();
+                await loadAssignments();
+                initializeGlobalTracking();
                 
                 // Parse input numbers with STRICT validation
                 const inputNumbers = [];
@@ -1108,36 +1173,11 @@
                     return;
                 }
                 
-                // Create a comprehensive set of all existing numbers (case-insensitive)
-                const existingNumbers = new Set();
+                console.log('Processed input numbers:', inputNumbers);
+                console.log('Current global tracking:', Array.from(globalUsedNumbers));
                 
-                // Add all numbers from allNumbers array (normalize)
-                allNumbers.forEach(num => existingNumbers.add(num.toUpperCase().trim()));
-                
-                // Add all numbers from mockNumbers if using mock data (normalize)
-                if (useMockData) {
-                    mockNumbers.forEach(num => existingNumbers.add(num.toUpperCase().trim()));
-                    
-                    // Also add from all mock assignments to be extra sure
-                    mockAssignments.forEach(assignment => {
-                        if (assignment.numbers && Array.isArray(assignment.numbers)) {
-                            assignment.numbers.forEach(num => existingNumbers.add(num.toUpperCase().trim()));
-                        }
-                    });
-                }
-                
-                // Add all numbers from all assignments (normalize)
-                assignments.forEach(assignment => {
-                    if (assignment.numbers && Array.isArray(assignment.numbers)) {
-                        assignment.numbers.forEach(num => existingNumbers.add(num.toUpperCase().trim()));
-                    }
-                });
-                
-                console.log('Checking against existing numbers:', Array.from(existingNumbers));
-                console.log('Input numbers to check:', inputNumbers);
-                
-                // Check for duplicate numbers (case-insensitive, normalized)
-                const duplicates = inputNumbers.filter(num => existingNumbers.has(num.toUpperCase().trim()));
+                // Check for duplicate numbers using global tracking
+                const duplicates = inputNumbers.filter(num => isNumberUsed(num));
                 
                 if (duplicates.length > 0) {
                     showMessage('generatorMessage', `These numbers have already been used: ${duplicates.join(', ')}`, 'error');
@@ -1189,6 +1229,7 @@
                 document.getElementById('numberInput').title = '';
                 
             } catch (error) {
+                console.error('Generation error:', error);
                 showMessage('generatorMessage', error.message, 'error');
             } finally {
                 generateBtn.disabled = false;
@@ -1223,8 +1264,16 @@
             
             try {
                 await loadNumbers();
+                await loadAssignments();
+                initializeGlobalTracking();
                 
-                if (allNumbers.length === 0) {
+                const allUniqueNumbers = Array.from(globalUsedNumbers).sort((a, b) => {
+                    const numA = parseInt(a.replace(/^DP0*/, '')) || 0;
+                    const numB = parseInt(b.replace(/^DP0*/, '')) || 0;
+                    return numA - numB;
+                });
+                
+                if (allUniqueNumbers.length === 0) {
                     container.innerHTML = `
                         <p style="text-align: center; color: #666; margin-top: 50px;">
                             No numbers generated yet. <br>
@@ -1236,10 +1285,10 @@
                 
                 container.innerHTML = `
                     <p style="text-align: center; color: #666; margin-bottom: 20px;">
-                        Total: ${allNumbers.length} numbers
+                        Total: ${allUniqueNumbers.length} numbers
                     </p>
                     <div class="numbers-grid">
-                        ${allNumbers.map(num => `<div class="number-item">${num}</div>`).join('')}
+                        ${allUniqueNumbers.map(num => `<div class="number-item">${num}</div>`).join('')}
                     </div>
                     <button class="btn btn-secondary" onclick="copyAllNumbers()" style="margin-top: 20px;">
                         <i class="fas fa-copy"></i> Copy All Numbers
@@ -1255,12 +1304,13 @@
         }
 
         function copyAllNumbers() {
-            if (allNumbers.length === 0) {
+            const allUniqueNumbers = Array.from(globalUsedNumbers);
+            if (allUniqueNumbers.length === 0) {
                 alert('No numbers to copy');
                 return;
             }
             
-            const numbers = allNumbers.join(', ');
+            const numbers = allUniqueNumbers.join(', ');
             navigator.clipboard.writeText(numbers).then(() => {
                 alert('All numbers copied to clipboard!');
             }).catch(() => {
@@ -1323,7 +1373,8 @@
 
         // Excel download function
         function downloadExcel() {
-            if (allNumbers.length === 0) {
+            const allUniqueNumbers = Array.from(globalUsedNumbers);
+            if (allUniqueNumbers.length === 0) {
                 alert('No numbers available to download');
                 return;
             }
@@ -1347,7 +1398,7 @@
                 });
                 
                 // Sort numbers numerically (extract numeric part after 'DP' prefix)
-                const sortedNumbers = [...allNumbers].sort((a, b) => {
+                const sortedNumbers = allUniqueNumbers.sort((a, b) => {
                     const numA = parseInt(a.replace(/^DP0*/, '')) || 0;
                     const numB = parseInt(b.replace(/^DP0*/, '')) || 0;
                     return numA - numB;
@@ -1400,7 +1451,7 @@
                 const summaryData = [
                     ['Summary Report'],
                     [''],
-                    ['Total Numbers:', allNumbers.length],
+                    ['Total Numbers:', allUniqueNumbers.length],
                     ['Total Assignments:', assignments.length],
                     ['Export Date:', new Date().toLocaleString()],
                     ['User:', currentUser?.email || 'Unknown'],
@@ -1454,7 +1505,7 @@
                 XLSX.writeFile(wb, filename);
                 
                 // Show success message
-                alert(`Excel file "${filename}" has been downloaded successfully!\n\nContains:\n- ${allNumbers.length} DP numbers\n- ${assignments.length} assignments\n- Summary report`);
+                alert(`Excel file "${filename}" has been downloaded successfully!\n\nContains:\n- ${allUniqueNumbers.length} DP numbers\n- ${assignments.length} assignments\n- Summary report`);
                 
             } catch (error) {
                 console.error('Excel export error:', error);
@@ -1594,24 +1645,14 @@
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize global tracking first
+            initializeGlobalTracking();
+            
             // Check authentication status
             checkAuth();
             
-            // Add some demo data for mock mode
-            if (useMockData && mockNumbers.length === 0) {
-                // Add some sample data for demonstration
-                const sampleNumbers = ['DP0001', 'DP0002', 'DP0003', 'DP0004', 'DP0005'];
-                const sampleAssignment = {
-                    id: 1,
-                    title: 'Sample Assignment',
-                    description: 'This is a sample assignment for demonstration',
-                    numbers: [...sampleNumbers], // Use spread to avoid reference issues
-                    createdAt: new Date().toISOString()
-                };
-                
-                mockAssignments.push(sampleAssignment);
-                mockNumbers.push(...sampleNumbers);
-            }
+            // Remove sample data - let it start fresh
+            console.log('Application initialized with clean state');
         });
     </script>
 </body>
