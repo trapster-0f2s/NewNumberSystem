@@ -639,109 +639,63 @@
     </div>
 
     <script>
-        // API Configuration
         const API_BASE_URL = 'http://localhost:5000/api';
         let authToken = null;
         let currentUser = null;
         let allNumbers = [];
         let assignments = [];
-
-        // Mock data for demonstration (when API is not available)
-        const useMockData = true;
+        const useMockData = false;
         let mockNumbers = [];
         let mockAssignments = [];
-
-        // CENTRALIZED NUMBER TRACKING - This is the key fix
         let globalUsedNumbers = new Set();
 
-        // Initialize global tracking
         function initializeGlobalTracking() {
             globalUsedNumbers.clear();
-            
-            // Add all numbers from mockNumbers
-            mockNumbers.forEach(num => {
-                globalUsedNumbers.add(num.toUpperCase().trim());
-            });
-            
-            // Add all numbers from mockAssignments
+            mockNumbers.forEach(num => globalUsedNumbers.add(num.toUpperCase().trim()));
             mockAssignments.forEach(assignment => {
                 if (assignment.numbers && Array.isArray(assignment.numbers)) {
-                    assignment.numbers.forEach(num => {
-                        globalUsedNumbers.add(num.toUpperCase().trim());
-                    });
+                    assignment.numbers.forEach(num => globalUsedNumbers.add(num.toUpperCase().trim()));
                 }
             });
-            
-            // Add all numbers from allNumbers
-            allNumbers.forEach(num => {
-                globalUsedNumbers.add(num.toUpperCase().trim());
-            });
-            
-            // Add all numbers from assignments
+            allNumbers.forEach(num => globalUsedNumbers.add(num.toUpperCase().trim()));
             assignments.forEach(assignment => {
                 if (assignment.numbers && Array.isArray(assignment.numbers)) {
-                    assignment.numbers.forEach(num => {
-                        globalUsedNumbers.add(num.toUpperCase().trim());
-                    });
+                    assignment.numbers.forEach(num => globalUsedNumbers.add(num.toUpperCase().trim()));
                 }
             });
-            
-            console.log('Global tracking initialized with', globalUsedNumbers.size, 'numbers:', Array.from(globalUsedNumbers));
+            console.log('Global tracking initialized with', globalUsedNumbers.size, 'numbers');
         }
 
-        // Add numbers to global tracking
         function addToGlobalTracking(numbers) {
             if (Array.isArray(numbers)) {
-                numbers.forEach(num => {
-                    globalUsedNumbers.add(num.toUpperCase().trim());
-                });
+                numbers.forEach(num => globalUsedNumbers.add(num.toUpperCase().trim()));
             }
             console.log('Added to global tracking. Total numbers:', globalUsedNumbers.size);
         }
 
-        // Check if number is already used
         function isNumberUsed(number) {
-            const normalizedNumber = number.toUpperCase().trim();
-            return globalUsedNumbers.has(normalizedNumber);
+            return globalUsedNumbers.has(number.toUpperCase().trim());
         }
 
-        // Utility function for showing messages
         function showMessage(containerId, message, type = 'error') {
             const container = document.getElementById(containerId);
             container.className = type === 'success' ? 'success-message' : 'error-message';
             container.textContent = message;
-            setTimeout(() => {
-                container.innerHTML = '';
-            }, 5000);
+            setTimeout(() => container.innerHTML = '', 5000);
         }
 
-        // API helper function with mock data fallback
         async function apiCall(endpoint, options = {}) {
-            if (useMockData) {
-                return mockApiCall(endpoint, options);
-            }
-
+            if (useMockData) return mockApiCall(endpoint, options);
             const url = `${API_BASE_URL}${endpoint}`;
             const config = {
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...options.headers
-                },
+                headers: { 'Content-Type': 'application/json', ...options.headers },
                 ...options
             };
-
-            if (authToken) {
-                config.headers['Authorization'] = `Bearer ${authToken}`;
-            }
-
+            if (authToken) config.headers['Authorization'] = `Bearer ${authToken}`;
             try {
                 const response = await fetch(url, config);
                 const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.error || 'API request failed');
-                }
-
+                if (!response.ok) throw new Error(data.error || 'API request failed');
                 return data;
             } catch (error) {
                 console.error('API call error:', error);
@@ -749,7 +703,6 @@
             }
         }
 
-        // FIXED Mock API with proper duplicate prevention
         function mockApiCall(endpoint, options = {}) {
             return new Promise((resolve, reject) => {
                 setTimeout(() => {
@@ -760,102 +713,64 @@
                                 authToken = 'mock-token-' + Date.now();
                                 currentUser = { id: 1, email: email };
                                 resolve({ token: authToken, user: currentUser });
-                            } else {
-                                reject(new Error('Invalid credentials'));
-                            }
+                            } else reject(new Error('Invalid credentials'));
                         } else if (endpoint === '/auth/register') {
                             const { email, password } = JSON.parse(options.body);
                             if (email && password) {
                                 authToken = 'mock-token-' + Date.now();
                                 currentUser = { id: 1, email: email };
                                 resolve({ token: authToken, user: currentUser });
-                            } else {
-                                reject(new Error('Registration failed'));
-                            }
+                            } else reject(new Error('Registration failed'));
                         } else if (endpoint === '/auth/me') {
-                            if (authToken && currentUser) {
-                                resolve({ user: currentUser });
-                            } else {
-                                reject(new Error('Unauthorized'));
-                            }
+                            if (authToken && currentUser) resolve({ user: currentUser });
+                            else reject(new Error('Unauthorized'));
                         } else if (endpoint === '/assignments' && options.method === 'POST') {
                             const data = JSON.parse(options.body);
-                            
-                            // Ensure global tracking is up to date
                             initializeGlobalTracking();
-                            
-                            console.log('Checking incoming numbers:', data.numbers);
-                            console.log('Against existing numbers:', Array.from(globalUsedNumbers));
-                            
-                            // Check for duplicates against all existing numbers
                             const duplicates = data.numbers.filter(num => isNumberUsed(num));
-                            
                             if (duplicates.length > 0) {
-                                console.log('Found duplicates:', duplicates);
                                 reject(new Error(`Numbers already exist: ${duplicates.join(', ')}`));
                                 return;
                             }
-                            
-                            // Check for internal duplicates in the input
                             const inputSet = new Set();
                             const internalDuplicates = [];
                             for (const num of data.numbers) {
                                 const upperNum = num.toUpperCase();
-                                if (inputSet.has(upperNum)) {
-                                    internalDuplicates.push(num);
-                                } else {
-                                    inputSet.add(upperNum);
-                                }
+                                if (inputSet.has(upperNum)) internalDuplicates.push(num);
+                                else inputSet.add(upperNum);
                             }
-                            
                             if (internalDuplicates.length > 0) {
-                                console.log('Found internal duplicates:', internalDuplicates);
                                 reject(new Error(`Duplicate numbers in input: ${internalDuplicates.join(', ')}`));
                                 return;
                             }
-                            
-                            // Create assignment
                             const assignment = {
                                 id: Date.now(),
                                 title: data.title,
                                 description: data.description,
-                                numbers: [...data.numbers], // Create a copy
+                                numbers: [...data.numbers],
                                 createdAt: new Date().toISOString()
                             };
-                            
-                            // Add to storage
                             mockAssignments.push(assignment);
                             mockNumbers.push(...data.numbers);
-                            
-                            // Update global tracking
                             addToGlobalTracking(data.numbers);
-                            
-                            console.log('Assignment created successfully with numbers:', data.numbers);
                             resolve({ assignment });
                         } else if (endpoint === '/assignments') {
                             resolve({ assignments: mockAssignments });
                         } else if (endpoint === '/assignments/numbers') {
-                            // Return all unique numbers
-                            const allUniqueNumbers = Array.from(globalUsedNumbers);
-                            resolve({ numbers: allUniqueNumbers });
-                        } else {
-                            resolve({ success: true });
-                        }
+                            resolve({ numbers: Array.from(globalUsedNumbers) });
+                        } else resolve({ success: true });
                     } catch (error) {
-                        console.error('Mock API error:', error);
                         reject(error);
                     }
                 }, 500);
             });
         }
 
-        // Check if user is already logged in
         async function checkAuth() {
             if (useMockData) {
                 showDashboard();
                 return;
             }
-
             authToken = localStorage.getItem('authToken');
             if (authToken) {
                 try {
@@ -868,16 +783,11 @@
                     authToken = null;
                     showLogin();
                 }
-            } else {
-                showLogin();
-            }
+            } else showLogin();
         }
 
-        // Page navigation
         function showPage(pageId) {
-            document.querySelectorAll('.page').forEach(page => {
-                page.classList.remove('active');
-            });
+            document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
             document.getElementById(pageId).classList.add('active');
         }
 
@@ -917,35 +827,26 @@
             showPage('userManagementPage');
         }
 
-        // Authentication functions
         document.getElementById('loginFormElement').addEventListener('submit', async function(e) {
             e.preventDefault();
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
             const loginBtn = document.getElementById('loginBtn');
-            
             try {
                 loginBtn.disabled = true;
                 loginBtn.textContent = 'Logging in...';
-                
                 const response = await apiCall('/auth/login', {
                     method: 'POST',
                     body: JSON.stringify({ email, password })
                 });
-
                 authToken = response.token;
                 currentUser = response.user;
-                
                 if (!useMockData) {
                     localStorage.setItem('authToken', authToken);
                     localStorage.setItem('currentUser', JSON.stringify(response.user));
                 }
-                
                 showMessage('authMessage', 'Login successful!', 'success');
-                
-                setTimeout(() => {
-                    showDashboard();
-                }, 1000);
+                setTimeout(() => showDashboard(), 1000);
             } catch (error) {
                 showMessage('authMessage', error.message, 'error');
             } finally {
@@ -960,34 +861,25 @@
             const password = document.getElementById('signupPassword').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
             const signupBtn = document.getElementById('signupBtn');
-            
             if (password !== confirmPassword) {
                 showMessage('authMessage', 'Passwords do not match', 'error');
                 return;
             }
-            
             try {
                 signupBtn.disabled = true;
                 signupBtn.textContent = 'Creating Account...';
-                
                 const response = await apiCall('/auth/register', {
                     method: 'POST',
                     body: JSON.stringify({ email, password })
                 });
-
                 authToken = response.token;
                 currentUser = response.user;
-                
                 if (!useMockData) {
                     localStorage.setItem('authToken', authToken);
                     localStorage.setItem('currentUser', JSON.stringify(response.user));
                 }
-                
                 showMessage('authMessage', 'Account created successfully!', 'success');
-                
-                setTimeout(() => {
-                    showDashboard();
-                }, 1000);
+                setTimeout(() => showDashboard(), 1000);
             } catch (error) {
                 showMessage('authMessage', error.message, 'error');
             } finally {
@@ -998,44 +890,30 @@
 
         async function logout() {
             try {
-                if (!useMockData) {
-                    await apiCall('/auth/logout', { method: 'POST' });
-                }
+                if (!useMockData) await apiCall('/auth/logout', { method: 'POST' });
             } catch (error) {
                 console.error('Logout error:', error);
             }
-            
-            // Clear local storage
             if (!useMockData) {
                 localStorage.removeItem('authToken');
                 localStorage.removeItem('currentUser');
             }
-            
             authToken = null;
             currentUser = null;
             allNumbers = [];
             assignments = [];
             mockNumbers = [];
             mockAssignments = [];
-            
-            // Clear global tracking
             globalUsedNumbers.clear();
-            
-            // Reset UI
             showPage('landingPage');
             showLogin();
             document.querySelectorAll('form').forEach(form => form.reset());
             document.getElementById('authMessage').innerHTML = '';
         }
 
-        // Load dashboard data
         async function loadDashboardData() {
             try {
-                await Promise.all([
-                    loadAssignments(),
-                    loadNumbers()
-                ]);
-                // Update global tracking after loading data
+                await Promise.all([loadAssignments(), loadNumbers()]);
                 initializeGlobalTracking();
                 updateStats();
             } catch (error) {
@@ -1043,7 +921,6 @@
             }
         }
 
-        // Load assignments
         async function loadAssignments() {
             try {
                 const response = await apiCall('/assignments');
@@ -1054,7 +931,6 @@
             }
         }
 
-        // Load numbers
         async function loadNumbers() {
             try {
                 const response = await apiCall('/assignments/numbers');
@@ -1065,143 +941,95 @@
             }
         }
 
-        // Update dashboard stats
         function updateStats() {
             const totalNumbers = globalUsedNumbers.size || allNumbers.length;
             const capacity = 10000;
             const percentage = Math.round((totalNumbers / capacity) * 100);
-            
-            // Get today's numbers
             const today = new Date().toISOString().split('T')[0];
             const todayAssignments = assignments.filter(a => 
                 a.createdAt && a.createdAt.split('T')[0] === today
             );
             const todayNumbers = todayAssignments.reduce((sum, a) => sum + (a.numbers?.length || 0), 0);
-
-            // Update UI
             document.getElementById('totalNumbers').textContent = totalNumbers.toLocaleString();
             document.getElementById('todayNumbers').textContent = todayNumbers.toLocaleString();
             document.getElementById('usagePercentage').textContent = `${percentage}%`;
             document.getElementById('usedCount').textContent = `${totalNumbers.toLocaleString()} used`;
-            
-            // Update progress bar
             const progressBar = document.getElementById('progressBar');
             progressBar.style.width = `${Math.min(percentage, 100)}%`;
-            
-            // Change color based on usage
             progressBar.className = 'progress-bar';
-            if (percentage >= 90) {
-                progressBar.classList.add('danger');
-            } else if (percentage >= 75) {
-                progressBar.classList.add('warning');
-            }
+            if (percentage >= 90) progressBar.classList.add('danger');
+            else if (percentage >= 75) progressBar.classList.add('warning');
         }
 
-        // FIXED Number generation with proper duplicate prevention
         document.getElementById('numberGeneratorForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
             const numberInput = document.getElementById('numberInput').value;
             const description = document.getElementById('description').value;
             const generateBtn = document.getElementById('generateBtn');
-            
             if (!numberInput.trim()) {
                 showMessage('generatorMessage', 'Please enter some numbers', 'error');
                 return;
             }
-            
             try {
                 generateBtn.disabled = true;
                 generateBtn.textContent = 'Generating...';
-                
-                // Ensure we have the latest data and global tracking is up to date
                 await loadNumbers();
                 await loadAssignments();
                 initializeGlobalTracking();
-                
-                // Parse input numbers with STRICT validation
                 const inputNumbers = [];
                 const invalidNumbers = [];
-                
                 numberInput.split(/[,\s]+/).forEach(num => {
                     const trimmed = num.trim();
                     if (!trimmed) return;
-                    
-                    // Handle both raw numbers and DP-prefixed numbers
                     if (trimmed.startsWith('DP') || trimmed.startsWith('dp')) {
-                        // Extract the numeric part after DP
                         const numericPart = trimmed.substring(2);
-                        
-                        // Check if it's a valid positive integer (no decimals, no negative, no zero)
                         if (!/^\d+$/.test(numericPart) || numericPart === '0') {
                             invalidNumbers.push(trimmed);
                             return;
                         }
-                        
                         const parsedNum = parseInt(numericPart, 10);
                         if (isNaN(parsedNum) || parsedNum <= 0) {
                             invalidNumbers.push(trimmed);
                             return;
                         }
-                        
                         inputNumbers.push(`DP${parsedNum.toString().padStart(4, '0')}`);
                     } else {
-                        // Check if it's a valid positive integer (no decimals, no negative, no zero)
                         if (!/^\d+$/.test(trimmed) || trimmed === '0') {
                             invalidNumbers.push(trimmed);
                             return;
                         }
-                        
                         const numericPart = parseInt(trimmed, 10);
                         if (isNaN(numericPart) || numericPart <= 0) {
                             invalidNumbers.push(trimmed);
                             return;
                         }
-                        
                         inputNumbers.push(`DP${numericPart.toString().padStart(4, '0')}`);
                     }
                 });
-                
-                // Check if there were any invalid numbers
                 if (invalidNumbers.length > 0) {
                     showMessage('generatorMessage', `Invalid numbers detected. Only positive whole numbers (no zero, no decimals, no negatives) are allowed: ${invalidNumbers.join(', ')}`, 'error');
                     return;
                 }
-                
                 if (inputNumbers.length === 0) {
-                    showMessage('generatorMessage', 'Please enter valid positive whole numbers (no zero, no decimals, no negative numbers)', 'error');
+                    showMessage('generatorMessage', 'Please enter valid positive whole numbers', 'error');
                     return;
                 }
-                
-                console.log('Processed input numbers:', inputNumbers);
-                console.log('Current global tracking:', Array.from(globalUsedNumbers));
-                
-                // Check for duplicate numbers using global tracking
                 const duplicates = inputNumbers.filter(num => isNumberUsed(num));
-                
                 if (duplicates.length > 0) {
                     showMessage('generatorMessage', `These numbers have already been used: ${duplicates.join(', ')}`, 'error');
                     return;
                 }
-                
-                // Check for duplicates within the current input
                 const inputSet = new Set();
                 const internalDuplicates = [];
                 for (const num of inputNumbers) {
                     const upperNum = num.toUpperCase();
-                    if (inputSet.has(upperNum)) {
-                        internalDuplicates.push(num);
-                    } else {
-                        inputSet.add(upperNum);
-                    }
+                    if (inputSet.has(upperNum)) internalDuplicates.push(num);
+                    else inputSet.add(upperNum);
                 }
-                
                 if (internalDuplicates.length > 0) {
                     showMessage('generatorMessage', `Duplicate numbers found in your input: ${internalDuplicates.join(', ')}`, 'error');
                     return;
                 }
-                
-                // Send to backend
                 const response = await apiCall('/assignments', {
                     method: 'POST',
                     body: JSON.stringify({
@@ -1210,24 +1038,15 @@
                         numbers: inputNumbers
                     })
                 });
-
                 const assignment = response.assignment;
                 assignments.unshift(assignment);
                 allNumbers.push(...assignment.numbers);
-                
-                // Display generated numbers
                 displayGeneratedNumbers(assignment.numbers);
                 showMessage('generatorMessage', `Successfully generated ${assignment.numbers.length} DP numbers!`, 'success');
-                
-                // Update stats immediately
                 updateStats();
-                
-                // Clear form
                 this.reset();
-                // Reset input styling
                 document.getElementById('numberInput').style.borderColor = '#e0e0e0';
                 document.getElementById('numberInput').title = '';
-                
             } catch (error) {
                 console.error('Generation error:', error);
                 showMessage('generatorMessage', error.message, 'error');
@@ -1239,18 +1058,13 @@
 
         function displayGeneratedNumbers(numbers) {
             const display = document.getElementById('numbersDisplay');
-            display.innerHTML = numbers.map(num => 
-                `<div class="number-item generated">${num}</div>`
-            ).join('');
-            
+            display.innerHTML = numbers.map(num => `<div class="number-item generated">${num}</div>`).join('');
             document.getElementById('generatedNumbers').style.display = 'block';
         }
 
         function copyNumbers() {
             const numbers = Array.from(document.querySelectorAll('#numbersDisplay .number-item'))
-                .map(item => item.textContent)
-                .join(', ');
-            
+                .map(item => item.textContent).join(', ');
             navigator.clipboard.writeText(numbers).then(() => {
                 showMessage('generatorMessage', 'Numbers copied to clipboard!', 'success');
             }).catch(() => {
@@ -1258,31 +1072,24 @@
             });
         }
 
-        // Display all numbers
         async function displayAllNumbers() {
             const container = document.getElementById('numbersList');
-            
             try {
                 await loadNumbers();
                 await loadAssignments();
                 initializeGlobalTracking();
-                
                 const allUniqueNumbers = Array.from(globalUsedNumbers).sort((a, b) => {
                     const numA = parseInt(a.replace(/^DP0*/, '')) || 0;
                     const numB = parseInt(b.replace(/^DP0*/, '')) || 0;
                     return numA - numB;
                 });
-                
                 if (allUniqueNumbers.length === 0) {
-                    container.innerHTML = `
-                        <p style="text-align: center; color: #666; margin-top: 50px;">
-                            No numbers generated yet. <br>
-                            <button class="link-button" onclick="showNumberGenerator()">Generate some numbers</button>
-                        </p>
-                    `;
+                    container.innerHTML = `<p style="text-align: center; color: #666; margin-top: 50px;">
+                        No numbers generated yet. <br>
+                        <button class="link-button" onclick="showNumberGenerator()">Generate some numbers</button>
+                    </p>`;
                     return;
                 }
-                
                 container.innerHTML = `
                     <p style="text-align: center; color: #666; margin-bottom: 20px;">
                         Total: ${allUniqueNumbers.length} numbers
@@ -1295,11 +1102,9 @@
                     </button>
                 `;
             } catch (error) {
-                container.innerHTML = `
-                    <p style="text-align: center; color: #c33; margin-top: 50px;">
-                        Error loading numbers: ${error.message}
-                    </p>
-                `;
+                container.innerHTML = `<p style="text-align: center; color: #c33; margin-top: 50px;">
+                    Error loading numbers: ${error.message}
+                </p>`;
             }
         }
 
@@ -1309,7 +1114,6 @@
                 alert('No numbers to copy');
                 return;
             }
-            
             const numbers = allUniqueNumbers.join(', ');
             navigator.clipboard.writeText(numbers).then(() => {
                 alert('All numbers copied to clipboard!');
@@ -1318,27 +1122,20 @@
             });
         }
 
-        // Display assignments
         async function displayAssignments() {
             const container = document.getElementById('assignmentsList');
-            
             try {
                 await loadAssignments();
-                
                 if (assignments.length === 0) {
-                    container.innerHTML = `
-                        <p style="text-align: center; color: #666; margin-top: 50px;">
-                            No assignments created yet. <br>
-                            <button class="link-button" onclick="showNumberGenerator()">Create your first assignment</button>
-                        </p>
-                    `;
+                    container.innerHTML = `<p style="text-align: center; color: #666; margin-top: 50px;">
+                        No assignments created yet. <br>
+                        <button class="link-button" onclick="showNumberGenerator()">Create your first assignment</button>
+                    </p>`;
                     return;
                 }
-                
                 container.innerHTML = assignments.map(assignment => {
                     const date = new Date(assignment.createdAt).toLocaleDateString();
                     const time = new Date(assignment.createdAt).toLocaleTimeString();
-                    
                     return `
                         <div class="assignment-card">
                             <div class="assignment-header">
@@ -1363,27 +1160,20 @@
                     `;
                 }).join('');
             } catch (error) {
-                container.innerHTML = `
-                    <p style="text-align: center; color: #c33; margin-top: 50px;">
-                        Error loading assignments: ${error.message}
-                    </p>
-                `;
+                container.innerHTML = `<p style="text-align: center; color: #c33; margin-top: 50px;">
+                    Error loading assignments: ${error.message}
+                </p>`;
             }
         }
 
-        // Excel download function
         function downloadExcel() {
             const allUniqueNumbers = Array.from(globalUsedNumbers);
             if (allUniqueNumbers.length === 0) {
                 alert('No numbers available to download');
                 return;
             }
-
             try {
-                // Create workbook and worksheet
                 const wb = XLSX.utils.book_new();
-                
-                // Create a map of numbers to their assignments for easy lookup
                 const numberToAssignmentMap = {};
                 assignments.forEach(assignment => {
                     if (assignment.numbers) {
@@ -1396,17 +1186,13 @@
                         });
                     }
                 });
-                
-                // Sort numbers numerically (extract numeric part after 'DP' prefix)
                 const sortedNumbers = allUniqueNumbers.sort((a, b) => {
                     const numA = parseInt(a.replace(/^DP0*/, '')) || 0;
                     const numB = parseInt(b.replace(/^DP0*/, '')) || 0;
                     return numA - numB;
                 });
-                
-                // Prepare data for Excel
                 const excelData = [
-                    ['DP Number', 'Assignment Title', 'Description', 'Date Created'], // Headers
+                    ['DP Number', 'Assignment Title', 'Description', 'Date Created'],
                     ...sortedNumbers.map(number => {
                         const assignment = numberToAssignmentMap[number];
                         return [
@@ -1417,50 +1203,19 @@
                         ];
                     })
                 ];
-                
-                // Create worksheet from data
                 const ws = XLSX.utils.aoa_to_sheet(excelData);
-                
-                // Set column widths
-                const colWidths = [
-                    { width: 15 }, // DP Number
-                    { width: 25 }, // Assignment Title
-                    { width: 35 }, // Description
-                    { width: 15 }  // Date Created
-                ];
+                const colWidths = [{ width: 15 }, { width: 25 }, { width: 35 }, { width: 15 }];
                 ws['!cols'] = colWidths;
-                
-                // Style the header row
-                const headerStyle = {
-                    font: { bold: true, color: { rgb: "FFFFFF" } },
-                    fill: { fgColor: { rgb: "667EEA" } },
-                    alignment: { horizontal: "center" }
-                };
-                
-                // Apply header styling
-                ['A1', 'B1', 'C1', 'D1'].forEach(cell => {
-                    if (ws[cell]) {
-                        ws[cell].s = headerStyle;
-                    }
-                });
-                
-                // Add worksheet to workbook
                 XLSX.utils.book_append_sheet(wb, ws, "DP Numbers");
-                
-                // Create summary sheet
                 const summaryData = [
-                    ['Summary Report'],
-                    [''],
+                    ['Summary Report'], [''],
                     ['Total Numbers:', allUniqueNumbers.length],
                     ['Total Assignments:', assignments.length],
                     ['Export Date:', new Date().toLocaleString()],
-                    ['User:', currentUser?.email || 'Unknown'],
-                    [''],
+                    ['User:', currentUser?.email || 'Unknown'], [''],
                     ['Assignment Breakdown:'],
                     ['Assignment Title', 'Number Count', 'Date Created']
                 ];
-                
-                // Add assignment breakdown
                 assignments.forEach(assignment => {
                     summaryData.push([
                         assignment.title,
@@ -1468,95 +1223,45 @@
                         assignment.createdAt ? new Date(assignment.createdAt).toLocaleDateString() : 'Unknown'
                     ]);
                 });
-                
                 const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
-                
-                // Style summary sheet
                 summaryWs['!cols'] = [{ width: 20 }, { width: 15 }, { width: 15 }];
-                
-                // Style the summary title
-                if (summaryWs['A1']) {
-                    summaryWs['A1'].s = {
-                        font: { bold: true, size: 16 },
-                        alignment: { horizontal: "center" }
-                    };
-                }
-                
-                // Style the breakdown header
-                ['A8', 'B8', 'C8'].forEach(cell => {
-                    if (summaryWs[cell]) {
-                        summaryWs[cell].s = {
-                            font: { bold: true },
-                            fill: { fgColor: { rgb: "F8F9FA" } }
-                        };
-                    }
-                });
-                
                 XLSX.utils.book_append_sheet(wb, summaryWs, "Summary");
-                
-                // Generate filename with current date
                 const now = new Date();
-                const dateStr = now.getFullYear() + 
-                               String(now.getMonth() + 1).padStart(2, '0') + 
-                               String(now.getDate()).padStart(2, '0');
+                const dateStr = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
                 const filename = `DP_Numbers_Export_${dateStr}.xlsx`;
-                
-                // Download the file
                 XLSX.writeFile(wb, filename);
-                
-                // Show success message
                 alert(`Excel file "${filename}" has been downloaded successfully!\n\nContains:\n- ${allUniqueNumbers.length} DP numbers\n- ${assignments.length} assignments\n- Summary report`);
-                
             } catch (error) {
                 console.error('Excel export error:', error);
                 alert('Failed to generate Excel file. Please try again.');
             }
         }
 
-        // Handle form validation
         document.getElementById('signupPassword').addEventListener('input', function() {
             const password = this.value;
             const confirmPassword = document.getElementById('confirmPassword');
-            
-            if (password.length < 6) {
-                this.setCustomValidity('Password must be at least 6 characters long');
-            } else {
-                this.setCustomValidity('');
-            }
-            
-            // Check confirm password if it has a value
+            if (password.length < 6) this.setCustomValidity('Password must be at least 6 characters long');
+            else this.setCustomValidity('');
             if (confirmPassword.value && confirmPassword.value !== password) {
                 confirmPassword.setCustomValidity('Passwords do not match');
-            } else {
-                confirmPassword.setCustomValidity('');
-            }
+            } else confirmPassword.setCustomValidity('');
         });
 
         document.getElementById('confirmPassword').addEventListener('input', function() {
             const password = document.getElementById('signupPassword').value;
-            const confirmPassword = this.value;
-            
-            if (confirmPassword !== password) {
-                this.setCustomValidity('Passwords do not match');
-            } else {
-                this.setCustomValidity('');
-            }
+            if (this.value !== password) this.setCustomValidity('Passwords do not match');
+            else this.setCustomValidity('');
         });
 
-        // Handle number input formatting with ENHANCED REAL-TIME VALIDATION
         document.getElementById('numberInput').addEventListener('input', function() {
             const value = this.value;
             const numbers = value.split(/[,\s]+/).filter(n => n.trim());
-            
             let hasValidNumbers = false;
             let hasInvalidNumbers = false;
-            
             if (numbers.length > 0) {
                 for (const num of numbers) {
                     const trimmed = num.trim();
                     if (!trimmed) continue;
-                    
-                    // Check if it's a valid format - STRICT validation for positive whole numbers only
                     if (trimmed.startsWith('DP') || trimmed.startsWith('dp')) {
                         const numericPart = trimmed.substring(2);
                         if (/^\d+$/.test(numericPart) && numericPart !== '0' && parseInt(numericPart, 10) > 0) {
@@ -1572,16 +1277,14 @@
                         break;
                     }
                 }
-                
-                // Set border color based on validation
                 if (hasInvalidNumbers) {
-                    this.style.borderColor = '#dc3545'; // Red for invalid
+                    this.style.borderColor = '#dc3545';
                     this.title = 'Invalid format detected. Use only positive whole numbers (no zero, no decimals, no negatives)';
                 } else if (hasValidNumbers) {
-                    this.style.borderColor = '#28a745'; // Green for valid
+                    this.style.borderColor = '#28a745';
                     this.title = 'Valid number format';
                 } else {
-                    this.style.borderColor = '#e0e0e0'; // Default
+                    this.style.borderColor = '#e0e0e0';
                     this.title = '';
                 }
             } else {
@@ -1590,43 +1293,31 @@
             }
         });
 
-        // Add keyboard shortcuts
         document.addEventListener('keydown', function(e) {
-            // Alt + 1 = Dashboard
             if (e.altKey && e.key === '1') {
                 e.preventDefault();
                 if (currentUser) showDashboard();
-            }
-            // Alt + 2 = Add Numbers
-            else if (e.altKey && e.key === '2') {
+            } else if (e.altKey && e.key === '2') {
                 e.preventDefault();
                 if (currentUser) showNumberGenerator();
-            }
-            // Alt + 3 = View Numbers
-            else if (e.altKey && e.key === '3') {
+            } else if (e.altKey && e.key === '3') {
                 e.preventDefault();
                 if (currentUser) showNumbersList();
-            }
-            // Alt + 4 = Assignments
-            else if (e.altKey && e.key === '4') {
+            } else if (e.altKey && e.key === '4') {
                 e.preventDefault();
                 if (currentUser) showAssignments();
-            }
-            // Escape = Go back/Dashboard
-            else if (e.key === 'Escape') {
+            } else if (e.key === 'Escape') {
                 e.preventDefault();
                 if (currentUser) showDashboard();
             }
         });
 
-        // Add tooltip for keyboard shortcuts
         document.body.insertAdjacentHTML('beforeend', `
             <div style="position: fixed; bottom: 10px; right: 10px; font-size: 11px; color: #666; background: rgba(255,255,255,0.8); padding: 5px; border-radius: 3px; display: none;" id="shortcutsTooltip">
                 Shortcuts: Alt+1 Dashboard | Alt+2 Add Numbers | Alt+3 View Numbers | Alt+4 Assignments | ESC Back
             </div>
         `);
 
-        // Show/hide shortcuts on Alt key
         let altKeyTimeout;
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Alt') {
@@ -1643,15 +1334,9 @@
             }
         });
 
-        // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize global tracking first
             initializeGlobalTracking();
-            
-            // Check authentication status
             checkAuth();
-            
-            // Remove sample data - let it start fresh
             console.log('Application initialized with clean state');
         });
     </script>

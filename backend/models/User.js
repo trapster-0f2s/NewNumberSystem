@@ -16,7 +16,7 @@ const userSchema = new mongoose.Schema({
   role: {
     type: String,
     enum: ['teacher', 'student', 'admin'],
-    default: 'student', // Default role for new registrations
+    default: 'student',
     required: true
   },
   createdAt: {
@@ -25,12 +25,12 @@ const userSchema = new mongoose.Schema({
   }
 });
 
-// Hash password before saving
+// Hash password before saving - FIXED
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
   
   const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, this.password);
+  this.password = await bcrypt.hash(this.password, salt); // ✅ Fixed: use salt, not this.password
   next();
 });
 

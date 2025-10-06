@@ -18,17 +18,56 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-// Create new assignment with DP numbers
+// Create new assignment with DP numbers - WITH DUPLICATE VALIDATION
 router.post('/', authenticateToken, async (req, res) => {
   try {
     const { title, description, numbers } = req.body;
 
+    // Validate numbers format
+    if (!Array.isArray(numbers) || numbers.length === 0) {
+      return res.status(400).json({ error: 'Numbers array is required and cannot be empty' });
+    }
+
     // Process numbers to ensure DP format
     const dpNumbers = numbers.map(num => {
       const cleanNum = num.toString().replace(/^DP/i, '').trim();
+      const numValue = parseInt(cleanNum, 10);
+      
+      // Validate positive whole numbers only
+      if (isNaN(numValue) || numValue <= 0 || cleanNum.includes('.')) {
+        throw new Error(`Invalid number format: ${num}. Only positive whole numbers are allowed.`);
+      }
+      
       return `DP${cleanNum.padStart(4, '0')}`;
     });
 
+    // Check for internal duplicates in the input
+    const uniqueNumbers = [...new Set(dpNumbers)];
+    if (uniqueNumbers.length !== dpNumbers.length) {
+      const duplicatesInInput = dpNumbers.filter((num, index) => 
+        dpNumbers.indexOf(num) !== index
+      );
+      return res.status(400).json({ 
+        error: `Duplicate numbers found in your input: ${[...new Set(duplicatesInInput)].join(', ')}` 
+      });
+    }
+
+    // ✅ CHECK FOR EXISTING NUMBERS IN DATABASE
+    const existingAssignments = await Assignment.find({ 
+      createdBy: req.user._id,
+      numbers: { $in: dpNumbers }
+    });
+
+    if (existingAssignments.length > 0) {
+      const existingNumbers = existingAssignments.flatMap(a => a.numbers);
+      const duplicates = dpNumbers.filter(num => existingNumbers.includes(num));
+      
+      return res.status(400).json({ 
+        error: `These numbers already exist in your assignments: ${duplicates.join(', ')}` 
+      });
+    }
+
+    // Create the assignment
     const assignment = new Assignment({
       title,
       description,
@@ -45,6 +84,11 @@ router.post('/', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Create assignment error:', error);
+    
+    if (error.message.includes('Invalid number format')) {
+      return res.status(400).json({ error: error.message });
+    }
+    
     res.status(500).json({ error: 'Server error creating assignment' });
   }
 });
@@ -55,9 +99,16 @@ router.get('/numbers', authenticateToken, async (req, res) => {
     const assignments = await Assignment.find({ createdBy: req.user._id });
     const allNumbers = assignments.flatMap(assignment => assignment.numbers);
     
+    // Remove duplicates and sort
+    const uniqueNumbers = [...new Set(allNumbers)].sort((a, b) => {
+      const numA = parseInt(a.replace(/^DP0*/, '')) || 0;
+      const numB = parseInt(b.replace(/^DP0*/, '')) || 0;
+      return numA - numB;
+    });
+    
     res.json({ 
-      numbers: allNumbers,
-      totalNumbers: allNumbers.length
+      numbers: uniqueNumbers,
+      totalNumbers: uniqueNumbers.length
     });
   } catch (error) {
     console.error('Get numbers error:', error);
